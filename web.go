@@ -37,7 +37,6 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 		Vehicle struct {
 			Firmware struct {
 				Board, Commit, Tag string
-				Date               time.Time
 			}
 		}
 		Identification struct {

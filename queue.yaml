@@ -1,0 +1,14 @@
+queue:
+- name: default
+  rate: 400/s
+  max_concurrent_requests: 1
+  bucket_size: 25
+  retry_parameters:
+    task_age_limit: 1d
+
+- name: asyncstore
+  target: worker
+  rate: 400/s
+  bucket_size: 25
+  retry_parameters:
+    task_age_limit: 14d

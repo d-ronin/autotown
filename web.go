@@ -2,12 +2,16 @@ package statstore
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/dustin/go-jsonpointer"
 
 	"appengine"
 	"appengine/datastore"
@@ -20,6 +24,7 @@ var templates *template.Template
 func init() {
 	http.HandleFunc("/storeTune", handleStoreTune)
 	http.HandleFunc("/asyncStoreTune", handleAsyncStoreTune)
+	http.HandleFunc("/exportTunes", handleExportTunes)
 }
 
 func handleStoreTune(w http.ResponseWriter, r *http.Request) {
@@ -111,4 +116,95 @@ func handleAsyncStoreTune(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(201)
+}
+
+func fetchVals(b []byte, cols []string) ([]string, error) {
+	rv := make([]string, 0, len(cols))
+	for _, k := range cols {
+		var v interface{}
+		if err := jsonpointer.FindDecode(b, k, &v); err != nil {
+			return nil, fmt.Errorf("field %v: %v", k, err)
+		}
+		rv = append(rv, fmt.Sprint(v))
+	}
+	return rv, nil
+}
+
+func columnize(s []string) []string {
+	rv := make([]string, 0, len(s))
+	for _, k := range s {
+		rv = append(rv, strings.Replace(k[1:], "/", ".", -1))
+	}
+	return rv
+}
+
+func handleExportTunes(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	header := []string{"timestamp", "uuid", "country", "region", "city", "lat", "lon"}
+
+	jsonCols := []string{
+		"/vehicle/batteryCells", "/vehicle/esc",
+		"/vehicle/motor", "/vehicle/size", "/vehicle/type",
+		"/vehicle/weight",
+		"/vehicle/firmware/board",
+		"/vehicle/firmware/commit",
+		"/vehicle/firmware/date",
+		"/vehicle/firmware/tag",
+
+		"/identification/tau",
+		"/identification/pitch/bias",
+		"/identification/pitch/gain",
+		"/identification/pitch/noise",
+		"/identification/roll/bias",
+		"/identification/roll/gain",
+		"/identification/roll/noise",
+
+		"/tuning/parameters/damping",
+		"/tuning/parameters/noiseSensitivity",
+
+		"/tuning/computed/derivativeCutoff",
+		"/tuning/computed/naturalFrequency",
+		"/tuning/computed/gains/outer/kp",
+		"/tuning/computed/gains/pitch/kp",
+		"/tuning/computed/gains/pitch/ki",
+		"/tuning/computed/gains/pitch/kd",
+		"/tuning/computed/gains/roll/kp",
+		"/tuning/computed/gains/roll/ki",
+		"/tuning/computed/gains/roll/kd",
+
+		"/userObservations",
+	}
+
+	cw := csv.NewWriter(w)
+	defer cw.Flush()
+	cw.Write(append(header, columnize(jsonCols)...))
+
+	q := datastore.NewQuery("TuneResults").
+		Order("timestamp")
+
+	for t := q.Run(c); ; {
+		var x TuneResults
+		_, err := t.Next(&x)
+		if err == datastore.Done {
+			break
+		}
+		if err := x.uncompress(); err != nil {
+			c.Infof("Error decompressing: %v", err)
+			continue
+		}
+
+		jsonVals, err := fetchVals(x.Data, jsonCols)
+		if err != nil {
+			c.Infof("Error extracting fields from %s: %v", x.Data, err)
+			continue
+		}
+
+		cw.Write(append([]string{
+			x.Timestamp.Format(time.RFC3339), x.UUID,
+			x.Country, x.Region, x.City, fmt.Sprint(x.Lat), fmt.Sprint(x.Lon)},
+			jsonVals...,
+		))
+	}
+
 }

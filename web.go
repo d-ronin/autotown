@@ -13,16 +13,20 @@ import (
 
 	"github.com/dustin/go-jsonpointer"
 
-	"appengine"
-	"appengine/datastore"
-	_ "appengine/remote_api"
-	"appengine/taskqueue"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/taskqueue"
+	"google.golang.org/cloud/storage"
 )
 
 var templates *template.Template
 
+const blobBucket = "dronin-crash-junkyard"
+
 func init() {
 	http.HandleFunc("/storeTune", handleStoreTune)
+	http.HandleFunc("/storeCrash", handleStoreCrash)
 	http.HandleFunc("/asyncStoreTune", handleAsyncStoreTune)
 	http.HandleFunc("/exportTunes", handleExportTunes)
 }
@@ -32,7 +36,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 
 	rawJson := json.RawMessage{}
 	if err := json.NewDecoder(r.Body).Decode(&rawJson); err != nil {
-		c.Infof("Error handling input JSON: %v", err)
+		log.Infof(c, "Error handling input JSON: %v", err)
 		http.Error(w, err.Error(), 400)
 		return
 	}
@@ -50,7 +54,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 	}{}
 
 	if err := json.Unmarshal([]byte(rawJson), &fields); err != nil {
-		c.Infof("Error pulling fields from JSON: %v", err)
+		log.Infof(c, "Error pulling fields from JSON: %v", err)
 		http.Error(w, err.Error(), 400)
 		return
 	}
@@ -72,7 +76,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 
 	buf := bytes.Buffer{}
 	if err := gob.NewEncoder(&buf).Encode(&t); err != nil {
-		c.Infof("Error encoding tune results: %v", err)
+		log.Infof(c, "Error encoding tune results: %v", err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
@@ -82,7 +86,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 		Payload: buf.Bytes(),
 	}
 	if _, err := taskqueue.Add(c, task, "asyncstore"); err != nil {
-		c.Infof("Error queueing storage of tune results: %v", err)
+		log.Infof(c, "Error queueing storage of tune results: %v", err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
@@ -95,22 +99,22 @@ func handleAsyncStoreTune(w http.ResponseWriter, r *http.Request) {
 
 	var t TuneResults
 	if err := gob.NewDecoder(r.Body).Decode(&t); err != nil {
-		c.Errorf("Error decoding tune results: %v", err)
+		log.Errorf(c, "Error decoding tune results: %v", err)
 		http.Error(w, "error decoding gob", 500)
 		return
 	}
 
 	oldSize := len(t.Data)
 	if err := t.compress(); err != nil {
-		c.Errorf("Error compressing raw tune data: %v", err)
+		log.Errorf(c, "Error compressing raw tune data: %v", err)
 		http.Error(w, "error compressing raw tune data", 500)
 		return
 	}
-	c.Infof("Compressed stat data from %v -> %v", oldSize, len(t.Data))
+	log.Infof(c, "Compressed stat data from %v -> %v", oldSize, len(t.Data))
 
 	_, err := datastore.Put(c, datastore.NewIncompleteKey(c, "TuneResults", nil), &t)
 	if err != nil {
-		c.Warningf("Error storing tune results item:  %v", err)
+		log.Warningf(c, "Error storing tune results item:  %v", err)
 		http.Error(w, "error storing tune results", 500)
 		return
 	}
@@ -190,13 +194,13 @@ func handleExportTunes(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if err := x.uncompress(); err != nil {
-			c.Infof("Error decompressing: %v", err)
+			log.Infof(c, "Error decompressing: %v", err)
 			continue
 		}
 
 		jsonVals, err := fetchVals(x.Data, jsonCols)
 		if err != nil {
-			c.Infof("Error extracting fields from %s: %v", x.Data, err)
+			log.Infof(c, "Error extracting fields from %s: %v", x.Data, err)
 			continue
 		}
 

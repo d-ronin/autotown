@@ -232,7 +232,7 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 
 	sum := sha1.Sum(data.Dump)
 	filename := hex.EncodeToString(sum[:])
-	filename = filename[:2] + "/" + filename[2:]
+	filename = "crash/" + filename[:2] + "/" + filename[2:]
 
 	client, err := storage.NewClient(c, cloud.WithScopes(storage.ScopeReadWrite))
 	if err != nil {

@@ -20,7 +20,6 @@ import (
 	"google.golang.org/appengine/file"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/taskqueue"
-	"google.golang.org/cloud"
 	"google.golang.org/cloud/storage"
 )
 
@@ -234,7 +233,7 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 	filename := hex.EncodeToString(sum[:])
 	filename = "crash/" + filename[:2] + "/" + filename[2:]
 
-	client, err := storage.NewClient(c, cloud.WithScopes(storage.ScopeReadWrite))
+	client, err := storage.NewClient(c)
 	if err != nil {
 		log.Warningf(c, "Error getting cloud store interface:  %v", err)
 		http.Error(w, "error talking to cloud store", 500)

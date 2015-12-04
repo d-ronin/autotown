@@ -2,8 +2,10 @@ package statstore
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"encoding/csv"
 	"encoding/gob"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -15,14 +17,14 @@ import (
 
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/file"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/taskqueue"
+	"google.golang.org/cloud"
 	"google.golang.org/cloud/storage"
 )
 
 var templates *template.Template
-
-const blobBucket = "dronin-crash-junkyard"
 
 func init() {
 	http.HandleFunc("/storeTune", handleStoreTune)
@@ -211,4 +213,70 @@ func handleExportTunes(w http.ResponseWriter, r *http.Request) {
 		))
 	}
 
+}
+
+func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	data := struct {
+		Comment   string
+		Directory string
+		Dump      []byte
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		log.Warningf(c, "Couldn't parse incoming JSON:  %v", err)
+		http.Error(w, "Bad input: "+err.Error(), 400)
+		return
+	}
+
+	sum := sha1.Sum(data.Dump)
+	filename := hex.EncodeToString(sum[:])
+	filename = filename[:2] + "/" + filename[2:]
+
+	client, err := storage.NewClient(c, cloud.WithScopes(storage.ScopeReadWrite))
+	if err != nil {
+		log.Warningf(c, "Error getting cloud store interface:  %v", err)
+		http.Error(w, "error talking to cloud store", 500)
+		return
+
+	}
+	defer client.Close()
+
+	var bucketName string
+	if bucketName, err = file.DefaultBucketName(c); err != nil {
+		log.Errorf(c, "failed to get default GCS bucket name: %v", err)
+		return
+	}
+
+	bucket := client.Bucket(bucketName)
+
+	wc := bucket.Object(filename).NewWriter(c)
+	wc.ContentType = "application/octet-stream"
+
+	if _, err := wc.Write(data.Dump); err != nil {
+		log.Warningf(c, "Error writing stuff to blob store:  %v", err)
+		http.Error(w, "error writing to blob store", 500)
+		return
+	}
+	if err := wc.Close(); err != nil {
+		log.Warningf(c, "Error closing blob store:  %v", err)
+		http.Error(w, "error closing blob store", 500)
+		return
+	}
+
+	crash := CrashData{
+		Comment:   data.Comment,
+		Directory: data.Directory,
+		CrashFile: filename,
+		Timestamp: time.Now(),
+	}
+	_, err = datastore.Put(c, datastore.NewIncompleteKey(c, "CrashData", nil), &crash)
+	if err != nil {
+		log.Warningf(c, "Error storing tune results item:  %v", err)
+		http.Error(w, "error storing tune results", 500)
+		return
+	}
+
+	w.WriteHeader(204)
 }

@@ -7,6 +7,13 @@ import (
 	"time"
 )
 
+type CrashData struct {
+	Comment   string    `datastore:"comment"`
+	Directory string    `datastore:"dir"`
+	CrashFile string    `datastore:"file"`
+	Timestamp time.Time `datastore:"timestamp"`
+}
+
 type TuneResults struct {
 	Data      []byte    `datastore:"data"`
 	Timestamp time.Time `datastore:"timestamp"`

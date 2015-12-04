@@ -12,6 +12,16 @@ type CrashData struct {
 	Directory string    `datastore:"dir"`
 	CrashFile string    `datastore:"file"`
 	Timestamp time.Time `datastore:"timestamp"`
+	Branch    string    `datastore:"branch"`
+	Commit    string    `datastore:"commit"`
+	Dirty     bool      `datastore:"dirty"`
+	Tag       string    `datastore:"tag"`
+	Addr      string    `datastore:"addr"`
+	Country   string    `datastore:"country"`
+	Region    string    `datastore:"region"`
+	City      string    `datastore:"city"`
+	Lat       float64   `datastore:"lat"`
+	Lon       float64   `datastore:"lon"`
 }
 
 type TuneResults struct {

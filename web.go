@@ -219,9 +219,9 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
 	data := struct {
-		Comment   string
-		Directory string
-		Dump      []byte
+		Comment, Directory, GitBranch, GitTag, GitCommit string
+		GitDirty                                         bool
+		Dump                                             []byte
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -268,9 +268,20 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 	crash := CrashData{
 		Comment:   data.Comment,
 		Directory: data.Directory,
+		Branch:    data.GitBranch,
+		Tag:       data.GitTag,
+		Commit:    data.GitCommit,
+		Dirty:     data.GitDirty,
 		CrashFile: filename,
 		Timestamp: time.Now(),
+		Addr:      r.RemoteAddr,
+		Country:   r.Header.Get("X-AppEngine-Country"),
+		Region:    r.Header.Get("X-AppEngine-Region"),
+		City:      r.Header.Get("X-AppEngine-City"),
 	}
+	fmt.Sscanf(r.Header.Get("X-Appengine-Citylatlong"),
+		"%f,%f", &crash.Lat, &crash.Lon)
+
 	_, err = datastore.Put(c, datastore.NewIncompleteKey(c, "CrashData", nil), &crash)
 	if err != nil {
 		log.Warningf(c, "Error storing tune results item:  %v", err)

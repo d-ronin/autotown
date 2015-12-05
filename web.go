@@ -146,7 +146,7 @@ func columnize(s []string) []string {
 func handleExportTunes(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
-	header := []string{"timestamp", "uuid", "country", "region", "city", "lat", "lon"}
+	header := []string{"timestamp", "country", "region", "city", "lat", "lon"}
 
 	jsonCols := []string{
 		"/vehicle/batteryCells", "/vehicle/esc",
@@ -206,7 +206,7 @@ func handleExportTunes(w http.ResponseWriter, r *http.Request) {
 		}
 
 		cw.Write(append([]string{
-			x.Timestamp.Format(time.RFC3339), x.UUID,
+			x.Timestamp.Format(time.RFC3339),
 			x.Country, x.Region, x.City, fmt.Sprint(x.Lat), fmt.Sprint(x.Lon)},
 			jsonVals...,
 		))

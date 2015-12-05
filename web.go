@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -146,7 +147,7 @@ func columnize(s []string) []string {
 func handleExportTunes(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
-	header := []string{"timestamp", "country", "region", "city", "lat", "lon"}
+	header := []string{"timestamp", "id", "country", "region", "city", "lat", "lon"}
 
 	jsonCols := []string{
 		"/vehicle/batteryCells", "/vehicle/esc",
@@ -188,6 +189,9 @@ func handleExportTunes(w http.ResponseWriter, r *http.Request) {
 	q := datastore.NewQuery("TuneResults").
 		Order("timestamp")
 
+	ids := map[string]string{}
+	nextId := 1
+
 	for t := q.Run(c); ; {
 		var x TuneResults
 		_, err := t.Next(&x)
@@ -205,8 +209,15 @@ func handleExportTunes(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
+		id, ok := ids[x.UUID]
+		if !ok {
+			id = strconv.Itoa(nextId)
+			ids[x.UUID] = id
+			nextId++
+		}
+
 		cw.Write(append([]string{
-			x.Timestamp.Format(time.RFC3339),
+			x.Timestamp.Format(time.RFC3339), id,
 			x.Country, x.Region, x.City, fmt.Sprint(x.Lat), fmt.Sprint(x.Lon)},
 			jsonVals...,
 		))

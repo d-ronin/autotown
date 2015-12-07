@@ -35,7 +35,7 @@ handlers:
 
 - url: /static
   static_dir: static
-  secure: never
+  secure: optional
 
 # Backend stuff.
 - url: /(async|batch|resend|update).*

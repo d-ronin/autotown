@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
+	"os/user"
 	"strconv"
 	"strings"
 	"time"
@@ -29,10 +31,36 @@ import (
 var templates *template.Template
 
 func init() {
+	var err error
+	templates, err = template.New("").ParseGlob("templates/*")
+	if err != nil {
+		panic("Couldn't parse templates: " + err.Error())
+	}
+
 	http.HandleFunc("/storeTune", handleStoreTune)
 	http.HandleFunc("/storeCrash", handleStoreCrash)
 	http.HandleFunc("/asyncStoreTune", handleAsyncStoreTune)
 	http.HandleFunc("/exportTunes", handleExportTunes)
+
+	http.HandleFunc("/api/currentuser", handleCurrentUser)
+	http.HandleFunc("/api/recentTunes", handleRecentTunes)
+	http.HandleFunc("/at/", handleAutotown)
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/at/", http.StatusFound)
+	})
+}
+
+func execTemplate(c context.Context, w io.Writer, name string, obj interface{}) error {
+	err := templates.ExecuteTemplate(w, name, obj)
+
+	if err != nil {
+		log.Errorf(c, "Error executing template %v: %v", name, err)
+		if wh, ok := w.(http.ResponseWriter); ok {
+			http.Error(wh, "Error executing template", 500)
+		}
+	}
+	return err
 }
 
 func handleStoreTune(w http.ResponseWriter, r *http.Request) {
@@ -369,4 +397,59 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(204)
+}
+
+func handleAutotown(w http.ResponseWriter, r *http.Request) {
+	execTemplate(appengine.NewContext(r), w, "app.html", nil)
+}
+
+func mustEncode(c context.Context, w io.Writer, i interface{}) {
+	if headered, ok := w.(http.ResponseWriter); ok {
+		headered.Header().Set("Cache-Control", "no-cache")
+		headered.Header().Set("Content-type", "application/json")
+	}
+
+	if err := json.NewEncoder(w).Encode(i); err != nil {
+		log.Errorf(c, "Error json encoding: %v", err)
+		if h, ok := w.(http.ResponseWriter); ok {
+			http.Error(h, err.Error(), 500)
+		}
+		return
+	}
+}
+
+func handleCurrentUser(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	u, _ := user.Current()
+	mustEncode(c, w, u)
+}
+
+func handleRecentTunes(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	res := []TuneResults{}
+
+	q := datastore.NewQuery("TuneResults").
+		Order("-timestamp").
+		Limit(10)
+
+	ids := map[string]string{}
+	nextId := 1
+	for t := q.Run(c); ; {
+		var x TuneResults
+		_, err := t.Next(&x)
+		if err == datastore.Done {
+			break
+		}
+		id, ok := ids[x.UUID]
+		if !ok {
+			id = strconv.Itoa(nextId)
+			ids[x.UUID] = id
+			nextId++
+		}
+		x.UUID = id
+
+		res = append(res, x)
+	}
+
+	mustEncode(c, w, res)
 }

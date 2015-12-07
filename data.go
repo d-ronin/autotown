@@ -25,7 +25,7 @@ type CrashData struct {
 }
 
 type TuneResults struct {
-	Data      []byte    `datastore:"data"`
+	Data      []byte    `datastore:"data" json:"-"`
 	Timestamp time.Time `datastore:"timestamp"`
 	Addr      string    `datastore:"addr"`
 	Country   string    `datastore:"country"`

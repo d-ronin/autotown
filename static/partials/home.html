@@ -1,0 +1,22 @@
+<h1>dRonin Autotown</h1>
+
+<h2>Recent Tunes</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Timestamp</th>
+      <th>Board</th>
+      <th>Tau</th>
+      <th>Where</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr ng-repeat="t in recentTunes">
+      <td title="{{t.Timestamp}}">{{t.Timestamp|relDate}}</td>
+      <td>{{t.Board}}</td>
+      <td>{{(t.Tau * 1000).toFixed(2)}} mS</td>
+      <td>{{t.City}}, {{t.Region}} {{t.Country}}</td>
+    </tr>
+  </tbody>
+</table>

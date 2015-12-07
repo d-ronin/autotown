@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en" ng-app="autotown">
+  <base href="/at/">
+  <head>
+    <title>dRonin Autotown</title>
+    <link rel="stylesheet" href="/static/stylesheets/screen.css" type="text/css">
+    <link rel="stylesheet" href="/static/stylesheets/print.css"
+          type="text/css" media="print" />
+
+  </head>
+
+  <body ng-controller="IndexCtrl">
+
+    <div ng-view></div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.0-beta.2/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.0-beta.2/angular-route.min.js"></script>
+    <script src="/static/lib/moment.min.js"></script>
+    <script src="/static/js/autotown.js"></script>
+  </body>
+</html>

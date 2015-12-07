@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/dustin/go-jsonpointer"
 
 	"google.golang.org/appengine"
@@ -144,8 +146,8 @@ func columnize(s []string) []string {
 	return rv
 }
 
-func handleExportTunes(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
+func exportTunesCSV(c context.Context, w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/csv")
 
 	header := []string{"timestamp", "id", "country", "region", "city", "lat", "lon"}
 
@@ -223,6 +225,73 @@ func handleExportTunes(w http.ResponseWriter, r *http.Request) {
 		))
 	}
 
+}
+
+func exportTunesJSON(c context.Context, w http.ResponseWriter, r *http.Request) {
+	q := datastore.NewQuery("TuneResults").
+		Order("timestamp")
+
+	ids := map[string]string{}
+	nextId := 1
+
+	w.Header().Set("Content-Type", "application/json")
+	j := json.NewEncoder(w)
+
+	for t := q.Run(c); ; {
+		type TuneResult struct {
+			ID        string           `json:"id"`
+			Timestamp time.Time        `json:"timestamp"`
+			Addr      string           `json:"addr"`
+			Country   string           `json:"country"`
+			Region    string           `json:"region"`
+			City      string           `json:"city"`
+			Lat       float64          `json:"lat"`
+			Lon       float64          `json:"lon"`
+			TuneData  *json.RawMessage `json:"tuneData"`
+		}
+		var x TuneResults
+		_, err := t.Next(&x)
+		if err == datastore.Done {
+			break
+		}
+		if err := x.uncompress(); err != nil {
+			log.Infof(c, "Error decompressing: %v", err)
+			continue
+		}
+
+		id, ok := ids[x.UUID]
+		if !ok {
+			id = strconv.Itoa(nextId)
+			ids[x.UUID] = id
+			nextId++
+		}
+
+		err = j.Encode(TuneResult{
+			Timestamp: x.Timestamp,
+			ID:        id,
+			Addr:      x.Addr,
+			Country:   x.Country,
+			Region:    x.Region,
+			City:      x.City,
+			Lat:       x.Lat,
+			Lon:       x.Lon,
+			TuneData:  (*json.RawMessage)(&x.Data),
+		})
+
+		if err != nil {
+			log.Infof(c, "Error writing entry: %v: %v", x, err)
+		}
+	}
+
+}
+
+func handleExportTunes(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	if r.FormValue("fmt") == "json" {
+		exportTunesJSON(c, w, r)
+		return
+	}
+	exportTunesCSV(c, w, r)
 }
 
 func handleStoreCrash(w http.ResponseWriter, r *http.Request) {

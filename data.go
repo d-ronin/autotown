@@ -3,8 +3,11 @@ package statstore
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"io"
 	"time"
+
+	"google.golang.org/appengine/datastore"
 )
 
 type CrashData struct {
@@ -38,6 +41,17 @@ type TuneResults struct {
 	UUID  string  `datastore:"uuid"`
 	Board string  `datastore:"board"`
 	Tau   float64 `datastore:"tau"`
+
+	Key  *datastore.Key   `datastore:"-"`
+	Orig *json.RawMessage `datastore:"-"`
+}
+
+func (u *TuneResults) setKey(to *datastore.Key) {
+	u.Key = to
+}
+
+type Keyable interface {
+	setKey(*datastore.Key)
 }
 
 func (t *TuneResults) compress() error {

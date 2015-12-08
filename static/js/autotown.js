@@ -29,6 +29,10 @@ autotown = angular.module('autotown', ['ngRoute']).
                         templateUrl: '/static/partials/home.html',
                         controller: 'IndexCtrl'
                     }).
+                    when('/tune/:tuna', {
+                        templateUrl: '/static/partials/tune.html',
+                        controller: 'TuneCtrl'
+                    }).
                     otherwise({
                         redirectTo: '/'
                     });
@@ -40,3 +44,13 @@ autotown.controller('IndexCtrl', ['$scope', '$http',
                                           $scope.recentTunes = data;
                                       });
                                   }]);
+
+
+autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
+                                 function($scope, $http, $routeParams) {
+                                     $http.get("/api/tune?tune=" +
+                                               encodeURIComponent($routeParams.tuna)
+                                              ).success(function(data) {
+                                                  $scope.tune = data;
+                                              });
+                                 }]);

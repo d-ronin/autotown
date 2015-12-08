@@ -1,0 +1,85 @@
+<h1>dRonin Autotown</h1>
+
+<h2>Tune Details for a {{tune.Board}} {{tune.Timestamp|relDate}}</h2>
+
+<p>
+  <tt>{{tune.Orig.vehicle.firmware.tag}}@{{tune.Orig.vehicle.firmware.commit}}</tt> on
+  {{tune.Orig.vehicle.firmware.board}} reported at {{tune.Timestamp}}
+  from {{tune.City}}, {{tune.Region}} {{tune.Country}}.
+</p>
+
+<table>
+  <tr><th>Size</th><td>{{tune.Orig.vehicle.size}}</td></tr>
+  <tr><th>Motor</th><td>{{tune.Orig.vehicle.motor}}</td></tr>
+  <tr><th>Props</th><td>{{tune.Orig.vehicle.props}}</td></tr>
+  <tr><th>Battery</th><td>{{tune.Orig.vehicle.batteryCells}}S</td></tr>
+  <tr><th>Weight</th><td>{{tune.Orig.vehicle.weight}}g</td></tr>
+</table>
+
+<h3>Observations</h3>
+
+<p>{{tune.Orig.userObservations}}</p>
+
+<h3>Identification</h3>
+
+<table>
+  <tr><th>Tau</th><td>{{tune.Orig.identification.tau * 1000}} S</td></tr>
+</table>
+
+<table>
+  <thead>
+    <tr><td></td><th>Bias</th><th>Gain</th><th>Noise</th></tr>
+  </thead>
+  <tbody>
+    <tr><th>Roll</th>
+      <td>{{tune.Orig.identification.roll.bias}}</td>
+      <td>{{tune.Orig.identification.roll.gain}}</td>
+      <td>{{tune.Orig.identification.roll.noise}}</td>
+    </tr>
+    <tr><th>Pitch</th>
+      <td>{{tune.Orig.identification.pitch.bias}}</td>
+      <td>{{tune.Orig.identification.pitch.gain}}</td>
+      <td>{{tune.Orig.identification.pitch.noise}}</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Computed Values</h3>
+
+<table>
+  <tr><th>Natural Frequency</th><td>{{tune.Orig.tuning.computed.naturalFrequency}}</td></tr>
+  <tr><th>Derivative Cutoff</th><td>{{tune.Orig.tuning.computed.derivativeCutoff}}</td></tr>
+</table>
+
+<h4>Params</h4>
+
+<table>
+  <tr><th>Damping</th><td>{{tune.Orig.tuning.parameters.damping}}</td></tr>
+  <tr><th>Noise Sensitivity</th><td>{{tune.Orig.tuning.parameters.noiseSensitivity}}</td></tr>
+</table>
+
+<h4>Gains</h4>
+
+<table>
+  <thead>
+    <tr><td></td><th>kP</th><th>kI</th><th>kD</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Outer</th>
+      <td>{{tune.Orig.tuning.computed.gains.Outer.kp}}</td><td></td><td></td>
+    </tr>
+    <tr>
+      <th>Roll</th>
+      <td>{{tune.Orig.tuning.computed.gains.roll.kp}}</td>
+      <td>{{tune.Orig.tuning.computed.gains.roll.ki}}</td>
+      <td>{{tune.Orig.tuning.computed.gains.roll.kd}}</td>
+    </tr>
+    <tr>
+      <th>Pitch</th>
+      <td>{{tune.Orig.tuning.computed.gains.pitch.kp}}</td>
+      <td>{{tune.Orig.tuning.computed.gains.pitch.ki}}</td>
+      <td>{{tune.Orig.tuning.computed.gains.pitch.kd}}</td>
+    </tr>
+  </tbody>
+</table>

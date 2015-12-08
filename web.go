@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"os/user"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -44,6 +45,7 @@ func init() {
 
 	http.HandleFunc("/api/currentuser", handleCurrentUser)
 	http.HandleFunc("/api/recentTunes", handleRecentTunes)
+	http.HandleFunc("/api/tune", handleTune)
 	http.HandleFunc("/at/", handleAutotown)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -424,22 +426,38 @@ func handleCurrentUser(w http.ResponseWriter, r *http.Request) {
 	mustEncode(c, w, u)
 }
 
+func fillKeyQuery(c context.Context, q *datastore.Query, results interface{}) error {
+	keys, err := q.GetAll(c, results)
+	if err == nil {
+		rslice := reflect.ValueOf(results).Elem()
+		for i := range keys {
+			if k, ok := rslice.Index(i).Interface().(Keyable); ok {
+				k.setKey(keys[i])
+			} else if k, ok := rslice.Index(i).Addr().Interface().(Keyable); ok {
+				k.setKey(keys[i])
+			} else {
+				log.Infof(c, "Warning: %v is not Keyable", rslice.Index(i).Interface())
+			}
+		}
+	} else {
+		log.Errorf(c, "Error executing query: %v", err)
+	}
+	return err
+}
+
 func handleRecentTunes(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
+	q := datastore.NewQuery("TuneResults").Order("-timestamp").Limit(10)
 	res := []TuneResults{}
-
-	q := datastore.NewQuery("TuneResults").
-		Order("-timestamp").
-		Limit(10)
+	if err := fillKeyQuery(c, q, &res); err != nil {
+		log.Errorf(c, "Error fetching tune results: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
 
 	ids := map[string]string{}
 	nextId := 1
-	for t := q.Run(c); ; {
-		var x TuneResults
-		_, err := t.Next(&x)
-		if err == datastore.Done {
-			break
-		}
+	for i, x := range res {
 		id, ok := ids[x.UUID]
 		if !ok {
 			id = strconv.Itoa(nextId)
@@ -448,8 +466,36 @@ func handleRecentTunes(w http.ResponseWriter, r *http.Request) {
 		}
 		x.UUID = id
 
-		res = append(res, x)
+		res[i] = x
 	}
 
 	mustEncode(c, w, res)
+}
+
+func handleTune(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	k, err := datastore.DecodeKey(r.FormValue("tune"))
+	if err != nil {
+		log.Errorf(c, "Error parsing tune key: %v", err)
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	tune := &TuneResults{}
+	if err := datastore.Get(c, k, tune); err != nil {
+		log.Errorf(c, "Error fetching tune: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	if err := tune.uncompress(); err != nil {
+		log.Errorf(c, "Error uncompressing tune details: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	tune.Orig = (*json.RawMessage)(&tune.Data)
+
+	mustEncode(c, w, tune)
 }

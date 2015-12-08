@@ -13,7 +13,7 @@
 
   <tbody>
     <tr ng-repeat="t in recentTunes">
-      <td title="{{t.Timestamp}}">{{t.Timestamp|relDate}}</td>
+      <td title="{{t.Timestamp}}"><a href="/at/tune/{{t.Key}}">{{t.Timestamp|relDate}}</a></td>
       <td>{{t.Board}}</td>
       <td>{{(t.Tau * 1000).toFixed(2)}} mS</td>
       <td>{{t.City}}, {{t.Region}} {{t.Country}}</td>

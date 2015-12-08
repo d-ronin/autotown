@@ -108,6 +108,14 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 	fmt.Sscanf(r.Header.Get("X-Appengine-Citylatlong"),
 		"%f,%f", &t.Lat, &t.Lon)
 
+	oldSize := len(t.Data)
+	if err := t.compress(); err != nil {
+		log.Errorf(c, "Error compressing raw tune data: %v", err)
+		http.Error(w, "error compressing raw tune data", 500)
+		return
+	}
+	log.Infof(c, "Compressed stat data from %v -> %v", oldSize, len(t.Data))
+
 	buf := bytes.Buffer{}
 	if err := gob.NewEncoder(&buf).Encode(&t); err != nil {
 		log.Infof(c, "Error encoding tune results: %v", err)
@@ -115,16 +123,23 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task := &taskqueue.Task{
-		Path:    "/asyncStoreTune",
-		Payload: buf.Bytes(),
-	}
-	if _, err := taskqueue.Add(c, task, "asyncstore"); err != nil {
-		log.Infof(c, "Error queueing storage of tune results: %v", err)
-		http.Error(w, err.Error(), 500)
+	k, err := datastore.Put(c, datastore.NewIncompleteKey(c, "TuneResults", nil), &t)
+	if err != nil {
+		log.Infof(c, "Error performing initial put (queueing): %v", err)
+		task := &taskqueue.Task{
+			Path:    "/asyncStoreTune",
+			Payload: buf.Bytes(),
+		}
+		if _, err := taskqueue.Add(c, task, "asyncstore"); err != nil {
+			log.Infof(c, "Error queueing storage of tune results: %v", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		w.WriteHeader(201)
 		return
 	}
 
+	w.Header().Set("Location", "https://dronin-autotown.appspot.com/at/tune/"+k.Encode())
 	w.WriteHeader(201)
 }
 
@@ -137,14 +152,6 @@ func handleAsyncStoreTune(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error decoding gob", 500)
 		return
 	}
-
-	oldSize := len(t.Data)
-	if err := t.compress(); err != nil {
-		log.Errorf(c, "Error compressing raw tune data: %v", err)
-		http.Error(w, "error compressing raw tune data", 500)
-		return
-	}
-	log.Infof(c, "Compressed stat data from %v -> %v", oldSize, len(t.Data))
 
 	_, err := datastore.Put(c, datastore.NewIncompleteKey(c, "TuneResults", nil), &t)
 	if err != nil {

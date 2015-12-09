@@ -3,7 +3,9 @@
 <h2>Tune Details for a {{tune.Board}} {{tune.Timestamp|relDate}}</h2>
 
 <p>
-  <tt>{{tune.Orig.vehicle.firmware.tag}}@{{tune.Orig.vehicle.firmware.commit}}</tt> on
+  <tt>{{tune.Orig.vehicle.firmware.tag}}@<a
+     href="https://github.com/d-ronin/dRonin/commit/{{tune.Orig.vehicle.firmware.commit}}"
+                                            >{{tune.Orig.vehicle.firmware.commit}}</a></tt> on
   {{tune.Orig.vehicle.firmware.board}} reported at {{tune.Timestamp}}
   from {{tune.City}}, {{tune.Region}} {{tune.Country}}.
 </p>

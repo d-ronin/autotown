@@ -19,6 +19,11 @@ autotown = angular.module('autotown', ['ngRoute']).
             return moment(dstr).calendar();
         };
     }).
+    filter('tomillis', function() {
+        return function(seconds) {
+            return (seconds * 1000).toFixed(2);
+        };
+    }).
     config(['$routeProvider', '$locationProvider',
             function($routeProvider, $locationProvider) {
                 $locationProvider.html5Mode(true);

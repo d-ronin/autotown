@@ -25,6 +25,12 @@ type CrashData struct {
 	City      string    `datastore:"city"`
 	Lat       float64   `datastore:"lat"`
 	Lon       float64   `datastore:"lon"`
+
+	Key *datastore.Key `datastore:"-"`
+}
+
+func (c *CrashData) setKey(to *datastore.Key) {
+	c.Key = to
 }
 
 type TuneResults struct {

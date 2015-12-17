@@ -46,6 +46,8 @@ func init() {
 	http.HandleFunc("/api/currentuser", handleCurrentUser)
 	http.HandleFunc("/api/recentTunes", handleRecentTunes)
 	http.HandleFunc("/api/tune", handleTune)
+	http.HandleFunc("/api/recentCrashes", handleRecentCrashes)
+	http.HandleFunc("/api/crash", handleCrash)
 	http.HandleFunc("/at/", handleAutotown)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -505,4 +507,17 @@ func handleTune(w http.ResponseWriter, r *http.Request) {
 	tune.Orig = (*json.RawMessage)(&tune.Data)
 
 	mustEncode(c, w, tune)
+}
+
+func handleRecentCrashes(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	q := datastore.NewQuery("CrashData").Order("-timestamp").Limit(50)
+	res := []CrashData{}
+	if err := fillKeyQuery(c, q, &res); err != nil {
+		log.Errorf(c, "Error fetching crash results: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	mustEncode(c, w, res)
 }

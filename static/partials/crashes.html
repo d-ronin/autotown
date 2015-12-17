@@ -1,0 +1,23 @@
+<h2>Recent Crashes</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Timestamp</th>
+      <th>Branch</th>
+      <th>Commit</th>
+      <th>Comment</th>
+      <th>Location</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr ng-repeat="c in recentCrashes">
+      <td title="{{c.Timestamp}}"><a href="{{crashServer}}{{c.CrashFile}}">{{c.Timestamp|relDate}}</a></td>
+      <td>{{c.Branch}}</td>
+      <td><a href="https://github.com/d-ronin/dRonin/commit/{{c.Commit}}">{{c.Commit}}</a></td>
+      <td class="comment">{{c.Comment}}</td>
+      <td><a href="https://www.google.com/maps/@{{c.Lat}},{{c.Lon}},12z">{{c.City}},
+          {{c.Region}} {{c.Country}}</a></td>
+    </tr>
+  </tbody>
+</table>

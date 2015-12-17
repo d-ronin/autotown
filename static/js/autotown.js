@@ -38,6 +38,10 @@ autotown = angular.module('autotown', ['ngRoute']).
                         templateUrl: '/static/partials/tune.html',
                         controller: 'TuneCtrl'
                     }).
+                    when('/crash/', {
+                        templateUrl: '/static/partials/crashes.html',
+                        controller: 'CrashCtrl'
+                    }).
                     otherwise({
                         redirectTo: '/'
                     });
@@ -59,3 +63,11 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                                   $scope.tune = data;
                                               });
                                  }]);
+
+autotown.controller('CrashCtrl', ['$scope', '$http',
+                                  function($scope, $http) {
+                                      $http.get("/api/recentCrashes").success(function(data) {
+                                          $scope.recentCrashes = data;
+                                          $scope.crashServer = 'https://console.developers.google.com/m/cloudstorage/b/dronin-autotown.appspot.com/o/';
+                                      });
+                                  }]);

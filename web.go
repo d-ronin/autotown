@@ -47,7 +47,6 @@ func init() {
 	http.HandleFunc("/api/recentTunes", handleRecentTunes)
 	http.HandleFunc("/api/tune", handleTune)
 	http.HandleFunc("/api/recentCrashes", handleRecentCrashes)
-	http.HandleFunc("/api/crash", handleCrash)
 	http.HandleFunc("/at/", handleAutotown)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

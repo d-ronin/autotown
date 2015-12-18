@@ -455,7 +455,7 @@ func fillKeyQuery(c context.Context, q *datastore.Query, results interface{}) er
 
 func handleRecentTunes(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	q := datastore.NewQuery("TuneResults").Order("-timestamp").Limit(10)
+	q := datastore.NewQuery("TuneResults").Order("-timestamp").Limit(50)
 	res := []TuneResults{}
 	if err := fillKeyQuery(c, q, &res); err != nil {
 		log.Errorf(c, "Error fetching tune results: %v", err)

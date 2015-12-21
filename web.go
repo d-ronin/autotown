@@ -337,6 +337,7 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		Comment, Directory, GitBranch, GitTag, GitCommit string
+		CurrentOS, CurrentArch, BuildInfo                string
 		GitDirty                                         bool
 		Dump                                             []byte
 	}{}
@@ -389,6 +390,9 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 		Tag:       data.GitTag,
 		Commit:    data.GitCommit,
 		Dirty:     data.GitDirty,
+		BuildInfo: data.BuildInfo,
+		OS:        data.CurrentOS,
+		Arch:      data.CurrentArch,
 		CrashFile: filename,
 		Timestamp: time.Now(),
 		Addr:      r.RemoteAddr,

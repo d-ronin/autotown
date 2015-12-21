@@ -19,6 +19,9 @@ type CrashData struct {
 	Commit    string    `datastore:"commit"`
 	Dirty     bool      `datastore:"dirty"`
 	Tag       string    `datastore:"tag"`
+	BuildInfo string    `datastore:"buildInfo"`
+	OS        string    `datastore:"os"`
+	Arch      string    `datastore:"arch"`
 	Addr      string    `datastore:"addr"`
 	Country   string    `datastore:"country"`
 	Region    string    `datastore:"region"`

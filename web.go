@@ -1,4 +1,4 @@
-package statstore
+package autotown
 
 import (
 	"bytes"

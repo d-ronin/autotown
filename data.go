@@ -1,4 +1,4 @@
-package statstore
+package autotown
 
 import (
 	"bytes"
@@ -93,12 +93,4 @@ func (t *TuneResults) uncompress() error {
 		t.Data = buf.Bytes()
 	}
 	return err
-}
-
-func NewStat(addr, data string) TuneResults {
-	return TuneResults{
-		Data:      []byte(data),
-		Timestamp: time.Now(),
-		Addr:      addr,
-	}
 }

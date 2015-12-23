@@ -3,6 +3,7 @@ package autotown
 import (
 	"bytes"
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/csv"
 	"encoding/gob"
 	"encoding/hex"
@@ -335,22 +336,23 @@ func handleExportTunes(w http.ResponseWriter, r *http.Request) {
 func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
-	data := struct {
-		Comment, Directory, GitBranch, GitTag, GitCommit string
-		CurrentOS, CurrentArch, BuildInfo                string
-		GitDirty                                         bool
-		Dump                                             []byte
-	}{}
-
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+	crash := &CrashData{}
+	if err := json.NewDecoder(r.Body).Decode(&crash.properties); err != nil {
 		log.Warningf(c, "Couldn't parse incoming JSON:  %v", err)
 		http.Error(w, "Bad input: "+err.Error(), 400)
 		return
 	}
 
-	sum := sha1.Sum(data.Dump)
+	data, err := base64.StdEncoding.DecodeString(crash.properties["dump"].(string))
+	if err != nil {
+		log.Warningf(c, "Couldn't parse decode crash:  %v", err)
+		http.Error(w, "Bad input: "+err.Error(), 400)
+		return
+	}
+	sum := sha1.Sum(data)
 	filename := hex.EncodeToString(sum[:])
 	filename = "crash/" + filename[:2] + "/" + filename[2:]
+	delete(crash.properties, "dump")
 
 	client, err := storage.NewClient(c)
 	if err != nil {
@@ -372,7 +374,7 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 	wc := bucket.Object(filename).NewWriter(c)
 	wc.ContentType = "application/octet-stream"
 
-	if _, err := wc.Write(data.Dump); err != nil {
+	if _, err := wc.Write(data); err != nil {
 		log.Warningf(c, "Error writing stuff to blob store:  %v", err)
 		http.Error(w, "error writing to blob store", 500)
 		return
@@ -382,30 +384,21 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error closing blob store", 500)
 		return
 	}
+	crash.properties["file"] = filename
+	crash.properties["timestamp"] = time.Now()
+	crash.properties["addr"] = r.RemoteAddr
+	crash.properties["country"] = r.Header.Get("X-AppEngine-Country")
+	crash.properties["region"] = r.Header.Get("X-AppEngine-Region")
+	crash.properties["city"] = r.Header.Get("X-AppEngine-City")
 
-	crash := CrashData{
-		Comment:   data.Comment,
-		Directory: data.Directory,
-		Branch:    data.GitBranch,
-		Tag:       data.GitTag,
-		Commit:    data.GitCommit,
-		Dirty:     data.GitDirty,
-		BuildInfo: data.BuildInfo,
-		OS:        data.CurrentOS,
-		Arch:      data.CurrentArch,
-		CrashFile: filename,
-		Timestamp: time.Now(),
-		Addr:      r.RemoteAddr,
-		Country:   r.Header.Get("X-AppEngine-Country"),
-		Region:    r.Header.Get("X-AppEngine-Region"),
-		City:      r.Header.Get("X-AppEngine-City"),
-	}
-	fmt.Sscanf(r.Header.Get("X-Appengine-Citylatlong"),
-		"%f,%f", &crash.Lat, &crash.Lon)
+	var lat, lon float64
+	fmt.Sscanf(r.Header.Get("X-Appengine-Citylatlong"), "%f,%f", &lat, &lon)
+	crash.properties["lat"] = lat
+	crash.properties["lon"] = lon
 
-	_, err = datastore.Put(c, datastore.NewIncompleteKey(c, "CrashData", nil), &crash)
+	_, err = datastore.Put(c, datastore.NewIncompleteKey(c, "CrashData", nil), crash)
 	if err != nil {
-		log.Warningf(c, "Error storing tune results item:  %v", err)
+		log.Warningf(c, "Error storing tune results item:  %v\n%#v", err, crash)
 		http.Error(w, "error storing tune results", 500)
 		return
 	}

@@ -40,8 +40,10 @@ func init() {
 	}
 
 	http.HandleFunc("/storeTune", handleStoreTune)
-	http.HandleFunc("/storeCrash", handleStoreCrash)
 	http.HandleFunc("/asyncStoreTune", handleAsyncStoreTune)
+	http.HandleFunc("/storeCrash", handleStoreCrash)
+	http.HandleFunc("/usageStats", handleUsageStats)
+	http.HandleFunc("/asyncUsageStats", handleAsyncUsageStats)
 	http.HandleFunc("/exportTunes", handleExportTunes)
 
 	http.HandleFunc("/api/currentuser", handleCurrentUser)
@@ -516,4 +518,30 @@ func handleRecentCrashes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mustEncode(c, w, res)
+}
+
+func handleUsageStats(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	rawJson := json.RawMessage{}
+	if err := json.NewDecoder(r.Body).Decode(&rawJson); err != nil {
+		log.Infof(c, "Error handling input JSON: %v", err)
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	task := &taskqueue.Task{
+		Path:    "/asyncUsageStats",
+		Payload: []byte(rawJson),
+	}
+	if _, err := taskqueue.Add(c, task, "asyncusage"); err != nil {
+		log.Infof(c, "Error queueing storage of tune results: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.WriteHeader(202)
+}
+
+func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "TODO", 501)
 }

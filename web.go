@@ -520,19 +520,38 @@ func handleRecentCrashes(w http.ResponseWriter, r *http.Request) {
 	mustEncode(c, w, res)
 }
 
+type asyncUsageData struct {
+	IP, Country, Region, City string
+	Lat, Lon                  float64
+	RawData                   *json.RawMessage
+}
+
 func handleUsageStats(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
-	rawJson := json.RawMessage{}
-	if err := json.NewDecoder(r.Body).Decode(&rawJson); err != nil {
+	data := &asyncUsageData{
+		IP:      r.RemoteAddr,
+		Country: r.Header.Get("X-AppEngine-Country"),
+		Region:  r.Header.Get("X-AppEngine-Region"),
+		City:    r.Header.Get("X-AppEngine-City"),
+	}
+	fmt.Sscanf(r.Header.Get("X-Appengine-Citylatlong"), "%f,%f", &data.Lat, &data.Lon)
+
+	if err := json.NewDecoder(r.Body).Decode(&data.RawData); err != nil {
 		log.Infof(c, "Error handling input JSON: %v", err)
 		http.Error(w, err.Error(), 400)
 		return
 	}
 
+	j, err := json.Marshal(data)
+	if err != nil {
+		log.Infof(c, "Error marshaling input: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
 	task := &taskqueue.Task{
 		Path:    "/asyncUsageStats",
-		Payload: []byte(rawJson),
+		Payload: j,
 	}
 	if _, err := taskqueue.Add(c, task, "asyncusage"); err != nil {
 		log.Infof(c, "Error queueing storage of tune results: %v", err)

@@ -523,6 +523,7 @@ func handleRecentCrashes(w http.ResponseWriter, r *http.Request) {
 type asyncUsageData struct {
 	IP, Country, Region, City string
 	Lat, Lon                  float64
+	Timestamp                 time.Time
 	RawData                   *json.RawMessage
 }
 
@@ -530,10 +531,11 @@ func handleUsageStats(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
 	data := &asyncUsageData{
-		IP:      r.RemoteAddr,
-		Country: r.Header.Get("X-AppEngine-Country"),
-		Region:  r.Header.Get("X-AppEngine-Region"),
-		City:    r.Header.Get("X-AppEngine-City"),
+		IP:        r.RemoteAddr,
+		Country:   r.Header.Get("X-AppEngine-Country"),
+		Region:    r.Header.Get("X-AppEngine-Region"),
+		City:      r.Header.Get("X-AppEngine-City"),
+		Timestamp: time.Now(),
 	}
 	fmt.Sscanf(r.Header.Get("X-Appengine-Citylatlong"), "%f,%f", &data.Lat, &data.Lon)
 

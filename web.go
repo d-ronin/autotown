@@ -12,6 +12,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"net/url"
 	"os/user"
 	"reflect"
 	"strconv"
@@ -51,6 +52,8 @@ func init() {
 	http.HandleFunc("/api/tune", handleTune)
 	http.HandleFunc("/api/recentCrashes", handleRecentCrashes)
 	http.HandleFunc("/at/", handleAutotown)
+
+	http.HandleFunc("/r/entity/", handleEntityRedirect)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/at/", http.StatusFound)
@@ -565,4 +568,27 @@ func handleUsageStats(w http.ResponseWriter, r *http.Request) {
 
 func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "TODO", 501)
+}
+
+func handleEntityRedirect(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	kstr := r.URL.Path[len("/r/entity/"):]
+
+	k, err := datastore.DecodeKey(kstr)
+	if err != nil {
+		log.Errorf(c, "Error parsing tune key: %v", err)
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	parts := []string{k.Namespace(), k.Kind(), "id:" + strconv.FormatInt(k.IntID(), 10)}
+	for i := range parts {
+		parts[i] = strconv.Itoa(len(parts[i])) + "/" + parts[i]
+	}
+
+	outk := url.QueryEscape(strings.Join(parts, "|"))
+
+	http.Redirect(w, r, "https://console.developers.google.com/datastore/entities/edit?key="+
+		outk+"&project="+appengine.AppID(c)+"&queryType=kind&kind="+k.Kind(), http.StatusFound)
 }

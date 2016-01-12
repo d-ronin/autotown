@@ -58,7 +58,7 @@ func (c *CrashData) setKey(to *datastore.Key) {
 type TuneResults struct {
 	Data      []byte    `datastore:"data" json:"-"`
 	Timestamp time.Time `datastore:"timestamp"`
-	Addr      string    `datastore:"addr"`
+	Addr      string    `datastore:"addr" json:"-"`
 	Country   string    `datastore:"country"`
 	Region    string    `datastore:"region"`
 	City      string    `datastore:"city"`
@@ -66,7 +66,7 @@ type TuneResults struct {
 	Lon       float64   `datastore:"lon"`
 
 	// Fields raised out of the JSON for querying
-	UUID  string  `datastore:"uuid"`
+	UUID  string  `datastore:"uuid", json:"-"`
 	Board string  `datastore:"board"`
 	Tau   float64 `datastore:"tau"`
 

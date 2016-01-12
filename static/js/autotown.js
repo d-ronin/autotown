@@ -57,9 +57,9 @@ autotown.controller('IndexCtrl', ['$scope', '$http',
 
 autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                  function($scope, $http, $routeParams) {
-                                     $http.get("/api/tune?tune=" +
-                                               encodeURIComponent($routeParams.tuna)
-                                              ).success(function(data) {
+                                     $scope.rawLink = "/api/tune?tune=" +
+                                         encodeURIComponent($routeParams.tuna);
+                                     $http.get($scope.rawLink).success(function(data) {
                                                   $scope.tune = data;
                                               });
                                  }]);

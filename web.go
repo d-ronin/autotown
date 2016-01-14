@@ -567,7 +567,38 @@ func handleUsageStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "TODO", 501)
+	c := appengine.NewContext(r)
+
+	var d asyncUsageData
+	if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
+		log.Errorf(c, "Error decoding async json data: %v", err)
+		http.Error(w, "error decoding json", 500)
+		return
+	}
+
+	u := UsageStat{
+		Data:      []byte(*d.RawData),
+		Timestamp: d.Timestamp,
+		Addr:      d.IP,
+		Country:   d.Country,
+		Region:    d.Region,
+		City:      d.City,
+		Lat:       d.Lat,
+		Lon:       d.Lon,
+	}
+
+	if err := u.compress(); err != nil {
+		log.Errorf(c, "Error compressing: %v", err)
+		http.Error(w, "error compressing data", 500)
+		return
+	}
+
+	_, err := datastore.Put(c, datastore.NewIncompleteKey(c, "UsageStat", nil), &u)
+	if err != nil {
+		log.Warningf(c, "Error storing usage data:  %v", err)
+		http.Error(w, "error storing usage data", 500)
+		return
+	}
 }
 
 func handleEntityRedirect(w http.ResponseWriter, r *http.Request) {

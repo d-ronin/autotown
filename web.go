@@ -576,6 +576,8 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	preSize := len(*d.RawData)
+
 	u := UsageStat{
 		Data:      []byte(*d.RawData),
 		Timestamp: d.Timestamp,
@@ -592,6 +594,8 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error compressing data", 500)
 		return
 	}
+
+	log.Infof(c, "Compressed usage data from %v to %v", preSize, len(u.Data))
 
 	_, err := datastore.Put(c, datastore.NewIncompleteKey(c, "UsageStat", nil), &u)
 	if err != nil {

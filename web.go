@@ -50,6 +50,7 @@ func init() {
 
 	http.HandleFunc("/api/currentuser", handleCurrentUser)
 	http.HandleFunc("/api/recentTunes", handleRecentTunes)
+	http.HandleFunc("/api/recentUsage", handleRecentUsage)
 	http.HandleFunc("/api/tune", handleTune)
 	http.HandleFunc("/api/recentCrashes", handleRecentCrashes)
 	http.HandleFunc("/at/", handleAutotown)
@@ -568,14 +569,15 @@ func handleUsageStats(w http.ResponseWriter, r *http.Request) {
 }
 
 type recentUsage struct {
-	City    string   `json:"city"`
-	Region  string   `json:"region"`
-	Country string   `json:"country"`
-	Lon     float64  `json:"lon"`
-	Lat     float64  `json:"lat"`
-	OS      string   `json:"os"`
-	Version string   `json:"version"`
-	Boards  []string `json:"boards"`
+	City      string    `json:"city"`
+	Region    string    `json:"region"`
+	Country   string    `json:"country"`
+	Lon       float64   `json:"lon"`
+	Lat       float64   `json:"lat"`
+	OS        string    `json:"os,omitempty"`
+	Version   string    `json:"version,omitempty"`
+	Boards    []string  `json:"boards,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 const maxRecent = 256
@@ -586,6 +588,30 @@ func getRecent(c context.Context) ([]recentUsage, error) {
 	recent := []recentUsage{}
 	_, err := memcache.JSON.Get(c, usageRollupKey, &recent)
 	return recent, err
+}
+
+func handleRecentUsage(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	recent, err := getRecent(c)
+	if err != nil {
+		log.Warningf(c, "Error getting recent: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	sincet, err := time.Parse(time.RFC3339, r.FormValue("since"))
+	if err == nil {
+		rv := []recentUsage{}
+		for _, i := range recent {
+			if i.Timestamp.After(sincet) {
+				rv = append(rv, i)
+			}
+		}
+		recent = rv
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	mustEncode(c, w, recent)
 }
 
 func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
@@ -638,15 +664,39 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	go func() {
+		decoded := struct {
+			CurrentOS  string `json:"currentOS"`
+			GCSVersion string `json:"gcs_version"`
+			Boards     []struct {
+				Name string
+			} `json:"boards_seen"`
+		}{}
+		var boards []string
 		if err := <-fetcherr; err != nil {
 			log.Warningf(c, "Couldn't fetch recent values from memcached: %v", err)
+		} else {
+			if err := json.Unmarshal([]byte(*d.RawData), &decoded); err != nil {
+				log.Warningf(c, "Error decoding usage details: %v", err)
+			}
+			m := map[string]bool{}
+			for _, b := range decoded.Boards {
+				m[b.Name] = true
+			}
+			for b := range m {
+				boards = append(boards, b)
+			}
 		}
 		recent = append(recent, recentUsage{
+			Timestamp: d.Timestamp,
+
 			Country: d.Country,
 			Region:  d.Region,
 			City:    d.City,
 			Lat:     d.Lat,
 			Lon:     d.Lon,
+			OS:      decoded.CurrentOS,
+			Version: decoded.GCSVersion,
+			Boards:  boards,
 		})
 		if len(recent) > maxRecent {
 			recent = recent[1:]
@@ -657,6 +707,11 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 		})
 	}()
 
+	for i := 0; i < 2; i++ {
+		if err := <-errch; err != nil {
+			log.Warningf(c, "Error with storage stuff: %v", err)
+		}
+	}
 }
 
 func handleEntityRedirect(w http.ResponseWriter, r *http.Request) {

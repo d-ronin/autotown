@@ -27,6 +27,7 @@ import (
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/file"
 	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/taskqueue"
 	"google.golang.org/cloud/storage"
 )
@@ -566,8 +567,36 @@ func handleUsageStats(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(202)
 }
 
+type recentUsage struct {
+	City    string   `json:"city"`
+	Region  string   `json:"region"`
+	Country string   `json:"country"`
+	Lon     float64  `json:"lon"`
+	Lat     float64  `json:"lat"`
+	OS      string   `json:"os"`
+	Version string   `json:"version"`
+	Boards  []string `json:"boards"`
+}
+
+const maxRecent = 256
+
+const usageRollupKey = "usageRollup"
+
+func getRecent(c context.Context) ([]recentUsage, error) {
+	recent := []recentUsage{}
+	_, err := memcache.JSON.Get(c, usageRollupKey, &recent)
+	return recent, err
+}
+
 func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
+
+	recent := []recentUsage{}
+	fetcherr := make(chan error, 1)
+	go func() {
+		_, err := memcache.JSON.Get(c, usageRollupKey, &recent)
+		fetcherr <- err
+	}()
 
 	var d asyncUsageData
 	if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
@@ -576,33 +605,58 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	preSize := len(*d.RawData)
+	errch := make(chan error, 2)
+	go func() {
+		preSize := len(*d.RawData)
 
-	u := UsageStat{
-		Data:      []byte(*d.RawData),
-		Timestamp: d.Timestamp,
-		Addr:      d.IP,
-		Country:   d.Country,
-		Region:    d.Region,
-		City:      d.City,
-		Lat:       d.Lat,
-		Lon:       d.Lon,
-	}
+		u := UsageStat{
+			Data:      []byte(*d.RawData),
+			Timestamp: d.Timestamp,
+			Addr:      d.IP,
+			Country:   d.Country,
+			Region:    d.Region,
+			City:      d.City,
+			Lat:       d.Lat,
+			Lon:       d.Lon,
+		}
 
-	if err := u.compress(); err != nil {
-		log.Errorf(c, "Error compressing: %v", err)
-		http.Error(w, "error compressing data", 500)
-		return
-	}
+		if err := u.compress(); err != nil {
+			log.Errorf(c, "Error compressing: %v", err)
+			errch <- err
+			return
+		}
 
-	log.Infof(c, "Compressed usage data from %v to %v", preSize, len(u.Data))
+		log.Infof(c, "Compressed usage data from %v to %v", preSize, len(u.Data))
 
-	_, err := datastore.Put(c, datastore.NewIncompleteKey(c, "UsageStat", nil), &u)
-	if err != nil {
-		log.Warningf(c, "Error storing usage data:  %v", err)
-		http.Error(w, "error storing usage data", 500)
-		return
-	}
+		_, err := datastore.Put(c, datastore.NewIncompleteKey(c, "UsageStat", nil), &u)
+		if err != nil {
+			log.Warningf(c, "Error storing usage data: %v", err)
+			errch <- err
+			return
+		}
+		errch <- nil
+	}()
+
+	go func() {
+		if err := <-fetcherr; err != nil {
+			log.Warningf(c, "Couldn't fetch recent values from memcached: %v", err)
+		}
+		recent = append(recent, recentUsage{
+			Country: d.Country,
+			Region:  d.Region,
+			City:    d.City,
+			Lat:     d.Lat,
+			Lon:     d.Lon,
+		})
+		if len(recent) > maxRecent {
+			recent = recent[1:]
+		}
+		errch <- memcache.JSON.Set(c, &memcache.Item{
+			Key:    usageRollupKey,
+			Object: recent,
+		})
+	}()
+
 }
 
 func handleEntityRedirect(w http.ResponseWriter, r *http.Request) {

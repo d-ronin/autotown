@@ -60,8 +60,21 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                      $scope.rawLink = "/api/tune?tune=" +
                                          encodeURIComponent($routeParams.tuna);
                                      $http.get($scope.rawLink).success(function(data) {
-                                                  $scope.tune = data;
-                                              });
+                                         $scope.tune = data;
+
+                                         // compute iceetune
+                                         // kp * e^((pitch beta - yaw beta) * .6)    for yaw kp
+                                         var kp = data.Orig.tuning.computed.gains.pitch.kp;
+                                         var ki = data.Orig.tuning.computed.gains.pitch.ki;
+                                         var kd = data.Orig.tuning.computed.gains.pitch.kd;
+
+                                         var pbeta = data.Orig.rawSettings.SystemIdent.fields.Beta[1];
+                                         var ybeta = data.Orig.rawSettings.SystemIdent.fields.Beta[2];
+
+                                         $scope.iceetune = {yp: kp * Math.pow(Math.E, (pbeta - ybeta)*0.6),
+                                                            yi: ki * Math.pow(Math.E, (pbeta - ybeta)*0.6) * 0.8,
+                                                            yd: kd * Math.pow(Math.E, (pbeta - ybeta)*0.6) * 0.8};
+                                     });
                                  }]);
 
 autotown.controller('CrashCtrl', ['$scope', '$http',

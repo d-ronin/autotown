@@ -5,3 +5,7 @@ body {
 table tbody th {
     text-align: left;
 }
+
+div.experimental {
+    border: solid 1px red;
+}

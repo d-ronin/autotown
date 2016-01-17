@@ -9,3 +9,17 @@ table tbody th {
 div.experimental {
     border: solid 1px red;
 }
+
+div#relatedTunes {
+    width: 220px;
+    float: right;
+    border: solid 1px black;
+}
+
+div #relatedTunes h2 {
+    font-size: 1.2em;
+}
+
+div#relatedTunes tr.current {
+    background: #ccc;
+}

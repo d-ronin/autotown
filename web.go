@@ -50,6 +50,7 @@ func init() {
 
 	http.HandleFunc("/api/currentuser", handleCurrentUser)
 	http.HandleFunc("/api/recentTunes", handleRecentTunes)
+	http.HandleFunc("/api/relatedTunes", handleRelatedTunes)
 	http.HandleFunc("/api/recentUsage", handleRecentUsage)
 	http.HandleFunc("/api/tune", handleTune)
 	http.HandleFunc("/api/recentCrashes", handleRecentCrashes)
@@ -500,6 +501,7 @@ func handleTune(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+	tune.Key = k
 
 	if err := tune.uncompress(); err != nil {
 		log.Errorf(c, "Error uncompressing tune details: %v", err)
@@ -510,6 +512,63 @@ func handleTune(w http.ResponseWriter, r *http.Request) {
 	tune.Orig = (*json.RawMessage)(&tune.Data)
 
 	mustEncode(c, w, tune)
+}
+
+type relatedTune struct {
+	Timestamp time.Time `datastore:"timestamp"`
+	Addr      string    `datastore:"addr" json:"-"`
+	Country   string    `datastore:"country"`
+	Region    string    `datastore:"region"`
+	City      string    `datastore:"city"`
+	Lat       float64   `datastore:"lat"`
+	Lon       float64   `datastore:"lon"`
+
+	Orig *json.RawMessage
+
+	Key *datastore.Key `datastore:"-"`
+}
+
+func (r *relatedTune) setKey(to *datastore.Key) {
+	r.Key = to
+}
+
+func handleRelatedTunes(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	k, err := datastore.DecodeKey(r.FormValue("tune"))
+	if err != nil {
+		log.Errorf(c, "Error parsing tune key: %v", err)
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	tune := &TuneResults{}
+	if err := datastore.Get(c, k, tune); err != nil {
+		log.Errorf(c, "Error fetching tune: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	q := datastore.NewQuery("TuneResults").Filter("uuid = ", tune.UUID).
+		Order("-timestamp").Limit(50)
+	res := []TuneResults{}
+	if err := fillKeyQuery(c, q, &res); err != nil {
+		log.Errorf(c, "Error fetching tune results: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	for _, r := range res {
+		if err := r.uncompress(); err != nil {
+			log.Errorf(c, "Error uncompressing tune details: %v", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		r.Orig = (*json.RawMessage)(&r.Data)
+		r.UUID = ""
+	}
+
+	mustEncode(c, w, res)
 }
 
 func handleRecentCrashes(w http.ResponseWriter, r *http.Request) {

@@ -75,6 +75,12 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                                             yi: ki * Math.pow(Math.E, (pbeta - ybeta)*0.6) * 0.8,
                                                             yd: kd * Math.pow(Math.E, (pbeta - ybeta)*0.6) * 0.8};
                                      });
+
+                                     var relatedLink = "/api/relatedTunes?tune=" +
+                                         encodeURIComponent($routeParams.tuna);
+                                     $http.get(relatedLink).success(function(data) {
+                                         $scope.related = data;
+                                     })
                                  }]);
 
 autotown.controller('CrashCtrl', ['$scope', '$http',

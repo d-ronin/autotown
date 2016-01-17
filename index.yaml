@@ -1,0 +1,8 @@
+indexes:
+
+- kind: TuneResults
+  ancestor: no
+  properties:
+  - name: uuid
+  - name: timestamp
+    direction: desc

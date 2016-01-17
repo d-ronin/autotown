@@ -1,5 +1,24 @@
 <h1>dRonin Autotown</h1>
 
+<div id="relatedTunes" ng-show="related">
+  <h2 title="Other tunes performed on this exact flight controller.">Also on this Board</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Tau</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr ng-repeat="t in related" ng-class="{current: t.Key == tune.Key}">
+        <td title="{{t.Timestamp}}"><a href="/at/tune/{{t.Key}}">{{t.Timestamp|relDate}}</a></td>
+        <td style="text-align: right" title="{{t.Tau}}">{{t.Tau|tomillis}} mS</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
 <h2>Tune Details for a {{tune.Board}} {{tune.Timestamp|relDate}}</h2>
 
 <p>

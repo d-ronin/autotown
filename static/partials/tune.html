@@ -13,7 +13,7 @@
     <tbody>
       <tr ng-repeat="t in related" ng-class="{current: t.Key == tune.Key}">
         <td title="{{t.Timestamp}}"><a href="/at/tune/{{t.Key}}">{{t.Timestamp|relDate}}</a></td>
-        <td style="text-align: right" title="{{t.Tau}}">{{t.Tau|tomillis}} mS</td>
+        <td style="text-align: right" title="{{t.Tau}}">{{t.Tau|tomillis}} ms</td>
       </tr>
     </tbody>
   </table>
@@ -47,7 +47,7 @@
 
 <table>
   <tr><th>Tau</th><td title="{{tune.Orig.identification.tau}}">
-      {{tune.Orig.identification.tau|tomillis}} mS</td></tr>
+      {{tune.Orig.identification.tau|tomillis}} ms</td></tr>
   <tr><th>Predicts</th><td>{{tune.Orig.rawSettings.SystemIdent.fields.NumAfPredicts}}</td></tr>
   <tr><th>Spilled</th><td>{{tune.Orig.rawSettings.SystemIdent.fields.NumSpilledPts}}</td></tr>
 </table>

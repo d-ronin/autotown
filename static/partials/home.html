@@ -15,7 +15,7 @@
     <tr ng-repeat="t in recentTunes">
       <td title="{{t.Timestamp}}"><a href="/at/tune/{{t.Key}}">{{t.Timestamp|relDate}}</a></td>
       <td>{{t.Board}}</td>
-      <td style="text-align: right" title="{{t.Tau}}">{{t.Tau|tomillis}} mS</td>
+      <td style="text-align: right" title="{{t.Tau}}">{{t.Tau|tomillis}} ms</td>
       <td><a href="https://www.google.com/maps/@{{t.Lat}},{{t.Lon}},12z">{{t.City}},
           {{t.Region}} {{t.Country}}</a></td>
     </tr>

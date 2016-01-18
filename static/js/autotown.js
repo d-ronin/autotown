@@ -68,12 +68,16 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                          var ki = data.Orig.tuning.computed.gains.pitch.ki;
                                          var kd = data.Orig.tuning.computed.gains.pitch.kd;
 
+                                         var okp = data.Orig.tuning.computed.gains.outer.kp;
+                                         var tau = data.Orig.identification.tau;
+
                                          var pbeta = data.Orig.rawSettings.SystemIdent.fields.Beta[1];
                                          var ybeta = data.Orig.rawSettings.SystemIdent.fields.Beta[2];
 
                                          $scope.iceetune = {yp: kp * Math.pow(Math.E, (pbeta - ybeta)*0.6),
                                                             yi: ki * Math.pow(Math.E, (pbeta - ybeta)*0.6) * 0.8,
-                                                            yd: kd * Math.pow(Math.E, (pbeta - ybeta)*0.6) * 0.8};
+                                                            yd: kd * Math.pow(Math.E, (pbeta - ybeta)*0.6) * 0.8,
+                                                            oki:  ki = (1/(2*Math.PI*tau*10.0) * .75) * okp};
                                      });
 
                                      var relatedLink = "/api/relatedTunes?tune=" +

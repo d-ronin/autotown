@@ -38,7 +38,7 @@ handlers:
   secure: optional
 
 # Backend stuff.
-- url: /(async|batch|resend|update).*
+- url: /(async|batch|resend|update|admin).*
   script: _go_app
   login: admin
 

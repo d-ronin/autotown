@@ -145,7 +145,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		w.WriteHeader(201)
+		w.WriteHeader(202)
 		return
 	}
 

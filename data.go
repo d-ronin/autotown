@@ -82,39 +82,54 @@ type Keyable interface {
 	setKey(*datastore.Key)
 }
 
-func (t *TuneResults) compress() error {
+func gz(d []byte) ([]byte, error) {
 	buf := &bytes.Buffer{}
 	// this errors only if you give it an invalid level
 	w, _ := gzip.NewWriterLevel(buf, gzip.BestCompression)
-	_, err := w.Write(t.Data)
+	_, err := w.Write(d)
 	if err != nil {
-		return err
+		return d, err
 	}
 	err = w.Close()
-	if err == nil && buf.Len() < len(t.Data) {
-		t.Data = buf.Bytes()
+	if err == nil && buf.Len() < len(d) {
+		d = buf.Bytes()
 	}
-	return err
+	return d, err
 }
 
-func (t *TuneResults) uncompress() error {
-	if len(t.Data) < 2 {
-		return nil
+func ungz(d []byte) ([]byte, error) {
+	if len(d) < 2 {
+		return d, nil
 	}
-	r, err := gzip.NewReader(bytes.NewReader(t.Data))
+	r, err := gzip.NewReader(bytes.NewReader(d))
 	switch err {
 	case nil:
 	case gzip.ErrHeader:
-		return nil
+		return d, nil
 	default:
-		return err
+		return d, err
 	}
 	buf := &bytes.Buffer{}
 	_, err = io.Copy(buf, r)
-	if err == nil {
-		t.Data = buf.Bytes()
+	return buf.Bytes(), err
+}
+
+func (t *TuneResults) compress() error {
+	d, err := gz(t.Data)
+	if err != nil {
+		return err
 	}
-	return err
+	t.Data = d
+	return nil
+}
+
+func (t *TuneResults) uncompress() error {
+	d, err := ungz(t.Data)
+	if err != nil {
+		return err
+	}
+	t.Data = d
+	return nil
 }
 
 type UsageStat struct {
@@ -129,36 +144,19 @@ type UsageStat struct {
 }
 
 func (t *UsageStat) compress() error {
-	buf := &bytes.Buffer{}
-	// this errors only if you give it an invalid level
-	w, _ := gzip.NewWriterLevel(buf, gzip.BestCompression)
-	_, err := w.Write(t.Data)
+	d, err := gz(t.Data)
 	if err != nil {
 		return err
 	}
-	err = w.Close()
-	if err == nil && buf.Len() < len(t.Data) {
-		t.Data = buf.Bytes()
-	}
-	return err
+	t.Data = d
+	return nil
 }
 
 func (t *UsageStat) uncompress() error {
-	if len(t.Data) < 2 {
-		return nil
-	}
-	r, err := gzip.NewReader(bytes.NewReader(t.Data))
-	switch err {
-	case nil:
-	case gzip.ErrHeader:
-		return nil
-	default:
+	d, err := ungz(t.Data)
+	if err != nil {
 		return err
 	}
-	buf := &bytes.Buffer{}
-	_, err = io.Copy(buf, r)
-	if err == nil {
-		t.Data = buf.Bytes()
-	}
-	return err
+	t.Data = d
+	return nil
 }

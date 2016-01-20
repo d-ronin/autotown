@@ -2,6 +2,7 @@ package autotown
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/csv"
@@ -615,9 +616,17 @@ func handleUsageStats(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+
+	g, err := gz(j)
+	if err != nil {
+		log.Infof(c, "Error compressing input: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
 	task := &taskqueue.Task{
 		Path:    "/asyncUsageStats",
-		Payload: j,
+		Payload: g,
 	}
 	if _, err := taskqueue.Add(c, task, "asyncusage"); err != nil {
 		log.Infof(c, "Error queueing storage of tune results: %v", err)
@@ -684,7 +693,13 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	var d asyncUsageData
-	if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
+	br, err := gzip.NewReader(r.Body)
+	if err != nil {
+		log.Errorf(c, "Error initializing ungzip: %v", err)
+		http.Error(w, "error ungzipping", 500)
+		return
+	}
+	if err := json.NewDecoder(br).Decode(&d); err != nil {
 		log.Errorf(c, "Error decoding async json data: %v", err)
 		http.Error(w, "error decoding json", 500)
 		return

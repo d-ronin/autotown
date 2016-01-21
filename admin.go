@@ -14,6 +14,7 @@ import (
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/memcache"
 )
 
 func init() {
@@ -163,6 +164,8 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+
+	memcache.Delete(c, resultsStatsKey)
 
 	w.WriteHeader(204)
 

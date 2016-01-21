@@ -50,6 +50,7 @@ func init() {
 	http.HandleFunc("/exportTunes", handleExportTunes)
 
 	http.HandleFunc("/api/currentuser", handleCurrentUser)
+	http.HandleFunc("/api/usageStats", handleUsageStatsSummary)
 	http.HandleFunc("/api/recentTunes", handleRecentTunes)
 	http.HandleFunc("/api/relatedTunes", handleRelatedTunes)
 	http.HandleFunc("/api/recentUsage", handleRecentUsage)
@@ -809,4 +810,58 @@ func handleEntityRedirect(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "https://console.developers.google.com/datastore/entities/edit?key="+
 		outk+"&project="+appengine.AppID(c)+"&queryType=kind&kind="+k.Kind(), http.StatusFound)
+}
+
+const resultsStatsKey = "controllerStats"
+
+func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	itm, err := memcache.Get(c, resultsStatsKey)
+	if err == nil {
+		rm := json.RawMessage(itm.Value)
+		mustEncode(c, w, &rm)
+		return
+	}
+
+	results := struct {
+		OS       map[string]int `json:"os"`
+		OSDetail map[string]int `json:"os_detail"`
+		Board    map[string]int `json:"board"`
+		Country  map[string]int `json:"country"`
+		Tag      map[string]int `json:"git_tag"`
+		Hash     map[string]int `json:"git_hash"`
+	}{
+		OS:       map[string]int{},
+		OSDetail: map[string]int{},
+		Board:    map[string]int{},
+		Country:  map[string]int{},
+		Tag:      map[string]int{},
+		Hash:     map[string]int{},
+	}
+
+	q := datastore.NewQuery("FoundController").Order("-timestamp")
+
+	for t := q.Run(c); ; {
+		var x FoundController
+		_, err := t.Next(&x)
+		if err == datastore.Done {
+			break
+		}
+
+		results.OS[abbrevOS(x.GCSOS)]++
+		results.OSDetail[x.GCSOS]++
+		results.Board[x.Name]++
+		results.Country[x.Country]++
+		results.Tag[x.GitTag]++
+		results.Hash[x.GitHash]++
+
+		memcache.JSON.Set(c, &memcache.Item{
+			Key:        resultsStatsKey,
+			Object:     results,
+			Expiration: time.Hour,
+		})
+	}
+
+	mustEncode(c, w, results)
 }

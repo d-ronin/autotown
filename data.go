@@ -71,7 +71,7 @@ type TuneResults struct {
 	Tau   float64 `datastore:"tau"`
 
 	Key  *datastore.Key   `datastore:"-"`
-	Orig *json.RawMessage `datastore:"-"`
+	Orig *json.RawMessage `datastore:"-" json:",omitempty"`
 }
 
 func (u *TuneResults) setKey(to *datastore.Key) {

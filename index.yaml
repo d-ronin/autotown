@@ -6,9 +6,3 @@ indexes:
   - name: uuid
   - name: timestamp
     direction: desc
-
-- kind: FoundController
-  ancestor: no
-  properties:
-  - name: timestamp
-    direction: desc

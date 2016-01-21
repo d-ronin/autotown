@@ -163,6 +163,7 @@ func (t *UsageStat) uncompress() error {
 
 type FoundController struct {
 	UUID     string `datastore:"uuid"`
+	Count    int    `datastore:"count"`
 	Name     string `datastore:"name"`
 	GitHash  string `datastore:"git_hash"`
 	GitTag   string `datastore:"git_tag"`
@@ -178,5 +179,6 @@ type FoundController struct {
 	City      string    `datastore:"city"`
 	Lat       float64   `datastore:"lat"`
 	Lon       float64   `datastore:"lon"`
+	Oldest    time.Time `datastore:"oldest_timestamp"`
 	Timestamp time.Time `datastore:"timestamp"`
 }

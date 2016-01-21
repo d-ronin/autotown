@@ -4,7 +4,6 @@ cron:
   schedule: every 24 hours
   timezone: US/Pacific
 
-cron:
 - description: fix up uuids
   url: /admin/updateControllers
   schedule: every 15 minutes

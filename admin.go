@@ -2,9 +2,11 @@ package autotown
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"crypto/sha256"
@@ -17,6 +19,7 @@ import (
 func init() {
 	http.HandleFunc("/admin/rewriteUUIDs", handleRewriteUUIDs)
 	http.HandleFunc("/admin/updateControllers", handleUpdateControllers)
+	http.HandleFunc("/admin/exportBoards", handleExportBoards)
 }
 
 func handleRewriteUUIDs(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +82,7 @@ func handleRewriteUUIDs(w http.ResponseWriter, r *http.Request) {
 func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
-	q := datastore.NewQuery("UsageStat").Order("-timestamp").Limit(100)
+	q := datastore.NewQuery("UsageStat")
 	res := []UsageStat{}
 	if err := fillKeyQuery(c, q, &res); err != nil {
 		log.Errorf(c, "Error fetching usage stats results: %v", err)
@@ -87,9 +90,7 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	seen := map[string]time.Time{}
-	var keys []*datastore.Key
-	var toUpdate []FoundController
+	items := map[string]FoundController{}
 	for _, x := range res {
 		x.uncompress()
 		rec := struct {
@@ -109,40 +110,50 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 			log.Warningf(c, "Couldn't parse %s: %v", x.Data, err)
 			continue
 		}
-	board:
+
 		for _, b := range rec.BoardsSeen {
 			uuid := b.UUID
 			if uuid == "" {
 				uuid = fmt.Sprintf("%x", sha256.Sum256([]byte(b.UUID)))
 			}
-			if seen[uuid].After(x.Timestamp) {
-				continue board
+			fc := items[uuid]
+			if x.Timestamp.After(fc.Timestamp) {
+				fc.UUID = uuid
+				fc.Name = b.Name
+				fc.GitHash = b.GitHash
+				fc.GitTag = b.GitTag
+				fc.UAVOHash = b.UavoHash
+				fc.GCSOS = rec.CurrentOS
+				fc.GCSArch = rec.CurrentArch
+				fc.GCSVersion = rec.GCSVersion
+				fc.Addr = x.Addr
+				fc.Country = x.Country
+				fc.Region = x.Region
+				fc.City = x.City
+				fc.Lat = x.Lat
+				fc.Lon = x.Lon
+				fc.Timestamp = x.Timestamp
+				fc.Oldest = x.Timestamp
+				if rec.ShareIP != "true" {
+					fc.Addr = ""
+				}
 			}
-			seen[uuid] = x.Timestamp
-			k := datastore.NewKey(c, "FoundController", uuid, 0, nil)
-			val := FoundController{
-				UUID:       uuid,
-				Name:       b.Name,
-				GitHash:    b.GitHash,
-				GitTag:     b.GitTag,
-				UAVOHash:   b.UavoHash,
-				GCSOS:      rec.CurrentOS,
-				GCSArch:    rec.CurrentArch,
-				GCSVersion: rec.GCSVersion,
-				Addr:       x.Addr,
-				Country:    x.Country,
-				Region:     x.Region,
-				City:       x.City,
-				Lat:        x.Lat,
-				Lon:        x.Lon,
-				Timestamp:  x.Timestamp,
+
+			if x.Timestamp.Before(fc.Oldest) {
+				fc.Oldest = x.Timestamp
 			}
-			if rec.ShareIP != "true" {
-				val.Addr = ""
-			}
-			keys = append(keys, k)
-			toUpdate = append(toUpdate, val)
+
+			fc.Count++
+
+			items[uuid] = fc
 		}
+	}
+
+	var keys []*datastore.Key
+	var toUpdate []FoundController
+	for k, v := range items {
+		keys = append(keys, datastore.NewKey(c, "FoundController", k, 0, nil))
+		toUpdate = append(toUpdate, v)
 	}
 
 	log.Infof(c, "Updating %v items", len(keys))
@@ -154,5 +165,54 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(204)
+
+}
+
+func abbrevOS(s string) string {
+	switch {
+	case strings.HasPrefix(s, "Windows"):
+		return "Windows"
+	case strings.HasPrefix(s, "Ubuntu"), strings.HasPrefix(s, "openSUSE"),
+		strings.HasPrefix(s, "Gentoo"):
+		return "Linux"
+	case strings.HasPrefix(s, "OS X"):
+		return "Mac"
+	default:
+		return s
+	}
+}
+
+func handleExportBoards(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	w.Header().Set("Content-Type", "text/plain")
+
+	header := []string{"timestamp", "oldest", "count",
+		"uuid", "name", "git_hash", "git_tag", "uavo_hash",
+		"gcs_os", "gcs_os_abbrev", "gcs_arch", "gcs_version",
+		"country", "region", "city", "lat", "lon",
+	}
+
+	cw := csv.NewWriter(w)
+	defer cw.Flush()
+	cw.Write(header)
+
+	q := datastore.NewQuery("FoundController").Order("-timestamp")
+
+	for t := q.Run(c); ; {
+		var x FoundController
+		_, err := t.Next(&x)
+		if err == datastore.Done {
+			break
+		}
+
+		cw.Write(append([]string{
+			x.Timestamp.Format(time.RFC3339), x.Oldest.Format(time.RFC3339),
+			fmt.Sprint(x.Count),
+			x.UUID, x.Name, x.GitHash, x.GitTag, x.UAVOHash,
+			x.GCSOS, abbrevOS(x.GCSOS), x.GCSArch, x.GCSVersion,
+			x.Country, x.Region, x.City, fmt.Sprint(x.Lat), fmt.Sprint(x.Lon)},
+		))
+	}
 
 }

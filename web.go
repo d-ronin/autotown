@@ -450,7 +450,7 @@ func fillKeyQuery(c context.Context, q *datastore.Query, results interface{}) er
 			} else if k, ok := rslice.Index(i).Addr().Interface().(Keyable); ok {
 				k.setKey(keys[i])
 			} else {
-				log.Infof(c, "Warning: %v is not Keyable", rslice.Index(i).Interface())
+				// log.Infof(c, "Warning: %v is not Keyable", rslice.Index(i).Interface())
 			}
 		}
 	} else {

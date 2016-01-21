@@ -160,3 +160,23 @@ func (t *UsageStat) uncompress() error {
 	t.Data = d
 	return nil
 }
+
+type FoundController struct {
+	UUID     string `datastore:"uuid"`
+	Name     string `datastore:"name"`
+	GitHash  string `datastore:"git_hash"`
+	GitTag   string `datastore:"git_tag"`
+	UAVOHash string `datastore:"uavo_hash"`
+
+	GCSOS      string `datastore:"gcs_os"`
+	GCSArch    string `datastore:"gss_arch"`
+	GCSVersion string `datastore:"gcs_version"`
+
+	Addr      string    `datastore:"addr"`
+	Country   string    `datastore:"country"`
+	Region    string    `datastore:"region"`
+	City      string    `datastore:"city"`
+	Lat       float64   `datastore:"lat"`
+	Lon       float64   `datastore:"lon"`
+	Timestamp time.Time `datastore:"timestamp"`
+}

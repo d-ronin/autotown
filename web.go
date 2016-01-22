@@ -829,14 +829,12 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		OSDetail map[string]int `json:"os_detail"`
 		Board    map[string]int `json:"board"`
 		Country  map[string]int `json:"country"`
-		Tag      map[string]int `json:"git_tag"`
 		Hash     map[string]int `json:"git_hash"`
 	}{
 		OS:       map[string]int{},
 		OSDetail: map[string]int{},
 		Board:    map[string]int{},
 		Country:  map[string]int{},
-		Tag:      map[string]int{},
 		Hash:     map[string]int{},
 	}
 
@@ -853,7 +851,6 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		results.OSDetail[x.GCSOS]++
 		results.Board[x.Name]++
 		results.Country[x.Country]++
-		results.Tag[x.GitTag]++
 		results.Hash[x.GitHash]++
 
 		memcache.JSON.Set(c, &memcache.Item{

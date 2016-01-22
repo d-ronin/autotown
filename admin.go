@@ -176,7 +176,7 @@ func abbrevOS(s string) string {
 	case strings.HasPrefix(s, "Windows"):
 		return "Windows"
 	case strings.HasPrefix(s, "Ubuntu"), strings.HasPrefix(s, "openSUSE"),
-		strings.HasPrefix(s, "Gentoo"):
+		strings.HasPrefix(s, "Gentoo"), strings.HasPrefix(s, "Arch"):
 		return "Linux"
 	case strings.HasPrefix(s, "OS X"):
 		return "Mac"

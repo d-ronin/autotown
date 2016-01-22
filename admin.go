@@ -115,7 +115,7 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 		for _, b := range rec.BoardsSeen {
 			uuid := b.UUID
 			if uuid == "" {
-				uuid = fmt.Sprintf("%x", sha256.Sum256([]byte(b.UUID)))
+				uuid = fmt.Sprintf("%x", sha256.Sum256([]byte(b.CPU)))
 			}
 			fc := items[uuid]
 			if x.Timestamp.After(fc.Timestamp) {

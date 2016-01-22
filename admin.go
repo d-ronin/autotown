@@ -115,6 +115,10 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 		for _, b := range rec.BoardsSeen {
 			uuid := b.UUID
 			if uuid == "" {
+				if b.CPU == "" {
+					log.Infof(c, "No UUID or CPU ID found for %v", b)
+					continue
+				}
 				uuid = fmt.Sprintf("%x", sha256.Sum256([]byte(b.CPU)))
 			}
 			fc := items[uuid]

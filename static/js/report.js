@@ -10,9 +10,11 @@ function drawBoardGraph(data) {
 
         chart.yAxis.tickFormat(d3.format(',d'));
 
+        var values = d3.entries(data['board']);
+        values.sort(function (a, b) {return d3.descending(a.value, b.value); });
+
         d3.select('#boards svg')
-            .datum([{'key': 'Stuff',
-                     values: d3.entries(data["board"])}])
+            .datum([{'key': 'Boards', values: values}])
             .transition().duration(500)
             .call(chart)
         ;

@@ -3,6 +3,7 @@ package autotown
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -136,6 +137,18 @@ func gitLabels(c context.Context) ([]githubRef, error) {
 	}
 
 	return rv, nil
+}
+
+func gitDescribe(h string, refs []githubRef) []githubRef {
+	var rv []githubRef
+
+	for _, r := range refs {
+		if strings.HasPrefix(r.Hash, h) {
+			rv = append(rv, r)
+		}
+	}
+
+	return rv
 }
 
 func handleGitLabels(w http.ResponseWriter, r *http.Request) {

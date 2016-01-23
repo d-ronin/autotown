@@ -825,18 +825,25 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	gitl, err := gitLabels(c)
+	if err != nil {
+		log.Warningf(c, "Couldn't resolve git labels: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
 	results := struct {
 		OS       map[string]int `json:"os"`
 		OSDetail map[string]int `json:"os_detail"`
 		Board    map[string]int `json:"board"`
 		Country  map[string]int `json:"country"`
-		Hash     map[string]int `json:"git_hash"`
+		Version  map[string]int `json:"version"`
 	}{
 		OS:       map[string]int{},
 		OSDetail: map[string]int{},
 		Board:    map[string]int{},
 		Country:  map[string]int{},
-		Hash:     map[string]int{},
+		Version:  map[string]int{},
 	}
 
 	q := datastore.NewQuery("FoundController").Order("-timestamp")
@@ -852,7 +859,13 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		results.OSDetail[x.GCSOS]++
 		results.Board[x.Name]++
 		results.Country[x.Country]++
-		results.Hash[x.GitHash]++
+
+		lbls := gitDescribe(x.GitHash, gitl)
+		if lbls == nil {
+			results.Version["Unknown"]++
+		} else {
+			results.Version[lbls[0].Label]++
+		}
 
 		memcache.JSON.Set(c, &memcache.Item{
 			Key:        resultsStatsKey,

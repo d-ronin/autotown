@@ -132,7 +132,7 @@ func gitLabels(c context.Context) ([]githubRef, error) {
 		memcache.JSON.Set(c, &memcache.Item{
 			Key:        gitLabelKey,
 			Object:     rv,
-			Expiration: time.Minute * 15,
+			Expiration: time.Hour,
 		})
 	}
 

@@ -827,9 +827,7 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 
 	gitl, err := gitLabels(c)
 	if err != nil {
-		log.Warningf(c, "Couldn't resolve git labels: %v", err)
-		http.Error(w, err.Error(), 500)
-		return
+		log.Errorf(c, "Error getting stuff from github, going without: %v", err)
 	}
 
 	results := struct {
@@ -860,13 +858,11 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		results.Board[x.Name]++
 		results.Country[x.Country]++
 
-		lbls := gitDescribe(x.GitHash, gitl)
-		if lbls == nil {
-			results.Version["Unknown"]++
-		} else {
-			results.Version[lbls[0].Label]++
+		ref := "Unknown"
+		if lbls := gitDescribe(x.GitHash, gitl); lbls != nil {
+			ref = lbls[0].Label
 		}
-
+		results.Version[ref]++
 	}
 
 	memcache.JSON.Set(c, &memcache.Item{

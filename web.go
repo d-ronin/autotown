@@ -26,6 +26,8 @@ import (
 
 	"github.com/dustin/go-jsonpointer"
 
+	"math"
+
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/file"
@@ -490,6 +492,54 @@ func handleRecentTunes(w http.ResponseWriter, r *http.Request) {
 	mustEncode(c, w, res)
 }
 
+func computeIceeTune(c context.Context, data []byte) map[string]float64 {
+	var tune struct {
+		Tuning struct {
+			Computed struct {
+				Gains struct {
+					Pitch, Outer struct {
+						KP, KI, KD float64
+					}
+				}
+			}
+		}
+		Identification struct {
+			Tau float64
+		}
+		RawSettings struct {
+			SystemIdent struct {
+				Fields struct {
+					Beta []float64
+				}
+			}
+		}
+	}
+
+	if err := json.Unmarshal(data, &tune); err != nil {
+		log.Infof(c, "Error parsing data for experimental tunes: %v", err)
+		return nil
+	}
+
+	kp := tune.Tuning.Computed.Gains.Pitch.KP
+	ki := tune.Tuning.Computed.Gains.Pitch.KI
+	kd := tune.Tuning.Computed.Gains.Pitch.KD
+
+	okp := tune.Tuning.Computed.Gains.Outer.KP
+	tau := tune.Identification.Tau
+
+	pbeta := tune.RawSettings.SystemIdent.Fields.Beta[1]
+	ybeta := tune.RawSettings.SystemIdent.Fields.Beta[2]
+
+	rv := map[string]float64{
+		"yp":  kp * math.Pow(math.E, (pbeta-ybeta)*0.6),
+		"yi":  ki * math.Pow(math.E, (pbeta-ybeta)*0.6) * 0.8,
+		"yd":  kd * math.Pow(math.E, (pbeta-ybeta)*0.6) * 0.8,
+		"oki": (1 / (2 * math.Pi * tau * 10.0) * 0.75) * okp,
+	}
+
+	return rv
+}
+
 func handleTune(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
@@ -515,6 +565,7 @@ func handleTune(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tune.Orig = (*json.RawMessage)(&tune.Data)
+	tune.Experimental = computeIceeTune(c, tune.Data)
 
 	mustEncode(c, w, tune)
 }

@@ -72,6 +72,8 @@ type TuneResults struct {
 
 	Key  *datastore.Key   `datastore:"-"`
 	Orig *json.RawMessage `datastore:"-" json:",omitempty"`
+
+	Experimental interface{} `datastore:"-" json:"experimental,omitempty"`
 }
 
 func (u *TuneResults) setKey(to *datastore.Key) {

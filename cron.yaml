@@ -3,8 +3,3 @@ cron:
   url: /admin/rewriteUUIDs
   schedule: every 24 hours
   timezone: US/Pacific
-
-- description: fix up uuids
-  url: /admin/updateControllers
-  schedule: every 15 minutes
-  timezone: US/Pacific

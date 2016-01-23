@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"camlistore.org/pkg/syncutil"
+
 	"golang.org/x/net/context"
 
 	"github.com/dustin/go-jsonpointer"
@@ -626,14 +628,28 @@ func handleUsageStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task := &taskqueue.Task{
-		Path:    "/asyncUsageStats",
-		Payload: g,
-	}
-	if _, err := taskqueue.Add(c, task, "asyncusage"); err != nil {
+	grp := syncutil.Group{}
+	grp.Go(func() error {
+		task := &taskqueue.Task{
+			Path:    "/asyncUsageStats",
+			Payload: g,
+		}
+		_, err := taskqueue.Add(c, task, "asyncusage")
+		return err
+	})
+	grp.Go(func() error {
+		task := &taskqueue.Task{
+			Path:    "/asyncRollup",
+			Payload: g,
+		}
+		_, err := taskqueue.Add(c, task, "asyncUsageRollup")
+		return err
+	})
+	if err := grp.Err(); err != nil {
 		log.Infof(c, "Error queueing storage of tune results: %v", err)
 		http.Error(w, err.Error(), 500)
 		return
+
 	}
 	w.WriteHeader(202)
 }

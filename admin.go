@@ -2,6 +2,7 @@ package autotown
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -15,12 +16,14 @@ import (
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/memcache"
+	"google.golang.org/appengine/taskqueue"
 )
 
 func init() {
 	http.HandleFunc("/admin/rewriteUUIDs", handleRewriteUUIDs)
 	http.HandleFunc("/admin/updateControllers", handleUpdateControllers)
 	http.HandleFunc("/admin/exportBoards", handleExportBoards)
+	http.HandleFunc("/asyncRollup", handleAsyncRollup)
 }
 
 func handleRewriteUUIDs(w http.ResponseWriter, r *http.Request) {
@@ -84,90 +87,186 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
 	q := datastore.NewQuery("UsageStat")
-	res := []UsageStat{}
-	if err := fillKeyQuery(c, q, &res); err != nil {
-		log.Errorf(c, "Error fetching usage stats results: %v", err)
-		http.Error(w, err.Error(), 500)
+	var tasks []*taskqueue.Task
+
+	for t := q.Run(c); ; {
+		var st UsageStat
+		_, err := t.Next(&st)
+		if err == datastore.Done {
+			break
+		}
+
+		err = st.uncompress()
+		if err != nil {
+			log.Warningf(c, "Failed to decompress record: %v", err)
+			continue
+		}
+
+		rm := json.RawMessage(st.Data)
+		data := &asyncUsageData{
+			IP:        st.Addr,
+			Country:   st.Country,
+			Region:    st.Region,
+			City:      st.City,
+			Lat:       st.Lat,
+			Lon:       st.Lon,
+			Timestamp: st.Timestamp,
+			RawData:   &rm,
+		}
+
+		j, err := json.Marshal(data)
+		if err != nil {
+			log.Infof(c, "Error marshaling input: %v", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		g, err := gz(j)
+		if err != nil {
+			log.Infof(c, "Error compressing input: %v", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		tasks = append(tasks, &taskqueue.Task{
+			Path:    "/asyncRollup",
+			Payload: g,
+		})
+
+		if len(tasks) == 100 {
+			_, err := taskqueue.AddMulti(c, tasks, "asyncUsageRollup")
+			if err != nil {
+				log.Errorf(c, "Error queueing stuff: %v", err)
+				http.Error(w, "error queueing", 500)
+				return
+			}
+			tasks = nil
+		}
+
+	}
+
+	if tasks != nil {
+		_, err := taskqueue.AddMulti(c, tasks, "asyncUsageRollup")
+		if err != nil {
+			log.Errorf(c, "Error queueing stuff: %v", err)
+			http.Error(w, "error queueing", 500)
+			return
+		}
+	}
+
+	w.WriteHeader(204)
+}
+
+func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	var d asyncUsageData
+	br, err := gzip.NewReader(r.Body)
+	if err != nil {
+		log.Errorf(c, "Error initializing ungzip: %v", err)
+		http.Error(w, "error ungzipping", 500)
+		return
+	}
+	if err := json.NewDecoder(br).Decode(&d); err != nil {
+		log.Errorf(c, "Error decoding async json data: %v", err)
+		http.Error(w, "error decoding json", 500)
+		return
+	}
+
+	rec := struct {
+		BoardsSeen []struct {
+			CPU, UUID string
+			FwHash    string
+			GitHash   string
+			GitTag    string
+			Name      string
+			UavoHash  string
+		}
+		CurrentArch, CurrentOS string
+		GCSVersion             string `json:"gcs_version"`
+		ShareIP                string
+	}{}
+	if err := json.Unmarshal([]byte(*d.RawData), &rec); err != nil {
+		log.Warningf(c, "Couldn't parse %s: %v", *d.RawData, err)
+		http.Error(w, "error ungzipping", 500)
 		return
 	}
 
 	items := map[string]FoundController{}
-	for _, x := range res {
-		x.uncompress()
-		rec := struct {
-			BoardsSeen []struct {
-				CPU, UUID string
-				FwHash    string
-				GitHash   string
-				GitTag    string
-				Name      string
-				UavoHash  string
+	for _, b := range rec.BoardsSeen {
+		uuid := b.UUID
+		if uuid == "" {
+			if b.CPU == "" {
+				log.Infof(c, "No UUID or CPU ID found for %v", b)
+				continue
 			}
-			CurrentArch, CurrentOS string
-			GCSVersion             string `json:"gcs_version"`
-			ShareIP                string
-		}{}
-		if err := json.Unmarshal(x.Data, &rec); err != nil {
-			log.Warningf(c, "Couldn't parse %s: %v", x.Data, err)
-			continue
+			uuid = fmt.Sprintf("%x", sha256.Sum256([]byte(b.CPU)))
 		}
 
-		for _, b := range rec.BoardsSeen {
-			uuid := b.UUID
-			if uuid == "" {
-				if b.CPU == "" {
-					log.Infof(c, "No UUID or CPU ID found for %v", b)
-					continue
-				}
-				uuid = fmt.Sprintf("%x", sha256.Sum256([]byte(b.CPU)))
-			}
-
-			if b.Name == "CopterControl" {
-				b.Name = "CC3D"
-			}
-
-			fc := items[uuid]
-			if x.Timestamp.After(fc.Timestamp) {
-				fc.UUID = uuid
-				fc.Name = b.Name
-				fc.GitHash = b.GitHash
-				fc.GitTag = b.GitTag
-				fc.UAVOHash = b.UavoHash
-				fc.GCSOS = rec.CurrentOS
-				fc.GCSArch = rec.CurrentArch
-				fc.GCSVersion = rec.GCSVersion
-				fc.Addr = x.Addr
-				fc.Country = x.Country
-				fc.Region = x.Region
-				fc.City = x.City
-				fc.Lat = x.Lat
-				fc.Lon = x.Lon
-				fc.Timestamp = x.Timestamp
-				fc.Oldest = x.Timestamp
-				if rec.ShareIP != "true" {
-					fc.Addr = ""
-				}
-			}
-
-			if x.Timestamp.Before(fc.Oldest) {
-				fc.Oldest = x.Timestamp
-			}
-
-			fc.Count++
-
-			items[uuid] = fc
+		if b.Name == "CopterControl" {
+			b.Name = "CC3D"
 		}
+
+		fc := items[uuid]
+		if d.Timestamp.After(fc.Timestamp) {
+			fc.UUID = uuid
+			fc.Name = b.Name
+			fc.GitHash = b.GitHash
+			fc.GitTag = b.GitTag
+			fc.UAVOHash = b.UavoHash
+			fc.GCSOS = rec.CurrentOS
+			fc.GCSArch = rec.CurrentArch
+			fc.GCSVersion = rec.GCSVersion
+			fc.Addr = d.IP
+			fc.Country = d.Country
+			fc.Region = d.Region
+			fc.City = d.City
+			fc.Lat = d.Lat
+			fc.Lon = d.Lon
+			fc.Timestamp = d.Timestamp
+			fc.Oldest = d.Timestamp
+			if rec.ShareIP != "true" {
+				fc.Addr = ""
+			}
+		}
+
+		if d.Timestamp.Before(fc.Oldest) {
+			fc.Oldest = d.Timestamp
+		}
+
+		fc.Count++
+
+		items[uuid] = fc
 	}
 
 	var keys []*datastore.Key
 	var toUpdate []FoundController
 	for k, v := range items {
-		keys = append(keys, datastore.NewKey(c, "FoundController", k, 0, nil))
+		key := datastore.NewKey(c, "FoundController", k, 0, nil)
+		prev := &FoundController{}
+		err := datastore.Get(c, key, prev)
+		switch err {
+		case datastore.ErrNoSuchEntity:
+		case nil:
+		default:
+			log.Errorf(c, "Error fetching tune: %v", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		if prev.Oldest.Before(v.Oldest) {
+			v.Oldest = prev.Oldest
+		}
+		if prev.Timestamp.After(v.Timestamp) {
+			v.Oldest = prev.Timestamp
+		}
+
+		keys = append(keys, key)
 		toUpdate = append(toUpdate, v)
 	}
 
 	log.Infof(c, "Updating %v items", len(keys))
-	_, err := datastore.PutMulti(c, keys, toUpdate)
+	_, err = datastore.PutMulti(c, keys, toUpdate)
 	if err != nil {
 		log.Errorf(c, "Error updating controller records: %v", err)
 		http.Error(w, err.Error(), 500)

@@ -57,7 +57,11 @@ func fetchDecode(c context.Context, u string, ob interface{}) error {
 		return err
 	}
 	if res.StatusCode != 200 {
-		return httputil.HTTPErrorf(res, "Error grabbing %v: %S\n%B", u)
+		limit := res.Header.Get("X-RateLimit-Limit")
+		remaining := res.Header.Get("X-RateLimit-Remaining")
+		reset := res.Header.Get("X-RateLimit-Reset")
+		return httputil.HTTPErrorf(res, "Error grabbing %v (limit=%v, remaining=%v, reset=%v): %S\n%B",
+			u, limit, remaining, reset)
 	}
 
 	defer res.Body.Close()

@@ -831,13 +831,15 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := struct {
-		OS       map[string]int `json:"os"`
-		OSDetail map[string]int `json:"os_detail"`
-		Board    map[string]int `json:"board"`
-		Country  map[string]int `json:"country"`
-		Version  map[string]int `json:"version"`
+		OS       map[string]int            `json:"os"`
+		OSBoard  map[string]map[string]int `json:"os_board"`
+		OSDetail map[string]int            `json:"os_detail"`
+		Board    map[string]int            `json:"board"`
+		Country  map[string]int            `json:"country"`
+		Version  map[string]int            `json:"version"`
 	}{
 		OS:       map[string]int{},
+		OSBoard:  map[string]map[string]int{},
 		OSDetail: map[string]int{},
 		Board:    map[string]int{},
 		Country:  map[string]int{},
@@ -857,6 +859,13 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		results.OSDetail[x.GCSOS]++
 		results.Board[x.Name]++
 		results.Country[x.Country]++
+
+		ob, ok := results.OSBoard[abbrevOS(x.GCSOS)]
+		if !ok {
+			ob = map[string]int{}
+		}
+		ob[x.Name]++
+		results.OSBoard[abbrevOS(x.GCSOS)] = ob
 
 		ref := "Unknown"
 		if lbls := gitDescribe(x.GitHash, gitl); lbls != nil {

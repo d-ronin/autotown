@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>dRonin Stats</title>
+    <link href="/static/stylesheet/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
+    <script src="/static/lib/queue.v1.min.js"></script>
+    <script src="/static/lib/nv.d3.min.js"></script>
+
+    <style>
+      body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        margin: auto;
+        position: relative;
+        width: 960px;
+      }
+
+      text {
+        font: 10px sans-serif;
+      }
+
+      .axis path, .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }
+
+      form {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+      }
+
+      #chart svg {
+        height: 500px;
+        width: 800px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="chart">
+      <svg></svg>
+    </div>
+  </body>
+
+  <script src="/static/js/report.js"></script>
+  <script lang="javascript">
+    d3.json("/api/usageStats", function(error, data) {
+      if (error) return console.warn(error);
+        drawOSGraph(data);
+      });
+  </script>
+</html>

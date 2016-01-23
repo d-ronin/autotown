@@ -60,7 +60,7 @@
   </head>
 
   <body>
-    <div id="boards"><h2>Boards</h2><svg></svg></div>
+    <div id="boards"><h2>Boards (<span id="totalboards">0</span> total)</h2><svg></svg></div>
     <div id="oses"><h2>OSes</h2><svg></svg></div>
     <div id="versions"><h2>Versions</h2><svg></svg></div>
   </body>
@@ -68,7 +68,10 @@
   <script src="/static/js/report.js"></script>
   <script lang="javascript">
     d3.json("/api/usageStats", function(error, data) {
-      if (error) return console.warn(error);
+    if (error) return console.warn(error);
+        var total = 0;
+        d3.map(data['board']).forEach(function(k, v) { total += v; });
+        d3.select("#totalboards").text(d3.format(",d")(total));
         drawBoardGraph(data);
         drawOSGraph(data);
         drawVersionGraph(data);

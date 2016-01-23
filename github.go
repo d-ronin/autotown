@@ -3,6 +3,7 @@ package autotown
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -52,7 +53,12 @@ func fetchDecode(c context.Context, u string, ob interface{}) error {
 	defer func(start time.Time) { log.Infof(c, "Fetched %v in %v", u, time.Since(start)) }(time.Now())
 
 	h := urlfetch.Client(c)
-	res, err := h.Get(u)
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(os.Getenv("GITHUB_USER"), os.Getenv("GITHUB_AUTH_TOKEN"))
+	res, err := h.Do(req)
 	if err != nil {
 		return err
 	}

@@ -867,12 +867,13 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 			results.Version[lbls[0].Label]++
 		}
 
-		memcache.JSON.Set(c, &memcache.Item{
-			Key:        resultsStatsKey,
-			Object:     results,
-			Expiration: time.Hour,
-		})
 	}
+
+	memcache.JSON.Set(c, &memcache.Item{
+		Key:        resultsStatsKey,
+		Object:     results,
+		Expiration: time.Hour,
+	})
 
 	mustEncode(c, w, results)
 }

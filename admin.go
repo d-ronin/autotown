@@ -192,10 +192,15 @@ func abbrevOS(s string) string {
 func handleExportBoards(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
+	gitl, err := gitLabels(c)
+	if err != nil {
+		log.Warningf(c, "Couldn't resolve git labels: %v", err)
+	}
+
 	w.Header().Set("Content-Type", "text/plain")
 
 	header := []string{"timestamp", "oldest", "count",
-		"uuid", "name", "git_hash", "git_tag", "uavo_hash",
+		"uuid", "name", "git_hash", "git_tag", "ref", "uavo_hash",
 		"gcs_os", "gcs_os_abbrev", "gcs_arch", "gcs_version",
 		"country", "region", "city", "lat", "lon",
 	}
@@ -213,10 +218,15 @@ func handleExportBoards(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
+		ref := ""
+		if lbls := gitDescribe(x.GitHash, gitl); lbls != nil {
+			ref = lbls[0].Label
+		}
+
 		cw.Write(append([]string{
 			x.Timestamp.Format(time.RFC3339), x.Oldest.Format(time.RFC3339),
 			fmt.Sprint(x.Count),
-			x.UUID, x.Name, x.GitHash, x.GitTag, x.UAVOHash,
+			x.UUID, x.Name, x.GitHash, x.GitTag, ref, x.UAVOHash,
 			x.GCSOS, abbrevOS(x.GCSOS), x.GCSArch, x.GCSVersion,
 			x.Country, x.Region, x.City, fmt.Sprint(x.Lat), fmt.Sprint(x.Lon)},
 		))

@@ -121,6 +121,11 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 				}
 				uuid = fmt.Sprintf("%x", sha256.Sum256([]byte(b.CPU)))
 			}
+
+			if b.Name == "CopterControl" {
+				b.Name = "CC3D"
+			}
+
 			fc := items[uuid]
 			if x.Timestamp.After(fc.Timestamp) {
 				fc.UUID = uuid

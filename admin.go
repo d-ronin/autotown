@@ -89,6 +89,8 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 	q := datastore.NewQuery("UsageStat")
 	var tasks []*taskqueue.Task
 
+	total := 0
+
 	for t := q.Run(c); ; {
 		var st UsageStat
 		_, err := t.Next(&st)
@@ -117,15 +119,13 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 		j, err := json.Marshal(data)
 		if err != nil {
 			log.Infof(c, "Error marshaling input: %v", err)
-			http.Error(w, err.Error(), 500)
-			return
+			continue
 		}
 
 		g, err := gz(j)
 		if err != nil {
 			log.Infof(c, "Error compressing input: %v", err)
-			http.Error(w, err.Error(), 500)
-			return
+			continue
 		}
 
 		tasks = append(tasks, &taskqueue.Task{
@@ -141,7 +141,10 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			tasks = nil
+			log.Infof(c, "Added a batch of 100")
 		}
+
+		total++
 
 	}
 
@@ -152,9 +155,21 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "error queueing", 500)
 			return
 		}
+		log.Infof(c, "Added a batch of %v", len(tasks))
 	}
 
+	log.Infof(c, "Queued %v entries for batch processing", total)
+
 	w.WriteHeader(204)
+}
+
+type usageSeenBoard struct {
+	CPU, UUID string
+	FwHash    string
+	GitHash   string
+	GitTag    string
+	Name      string
+	UavoHash  string
 }
 
 func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
@@ -174,14 +189,7 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rec := struct {
-		BoardsSeen []struct {
-			CPU, UUID string
-			FwHash    string
-			GitHash   string
-			GitTag    string
-			Name      string
-			UavoHash  string
-		}
+		BoardsSeen             []usageSeenBoard
 		CurrentArch, CurrentOS string
 		GCSVersion             string `json:"gcs_version"`
 		ShareIP                string
@@ -192,8 +200,25 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items := map[string]FoundController{}
+	seenBoards := map[string]usageSeenBoard{}
 	for _, b := range rec.BoardsSeen {
+		uuid := b.UUID
+		if uuid == "" {
+			if b.CPU == "" {
+				log.Infof(c, "No UUID or CPU ID found for %v", b)
+				continue
+			}
+			uuid = fmt.Sprintf("%x", sha256.Sum256([]byte(b.CPU)))
+		}
+
+		if b.Name == "CopterControl" {
+			b.Name = "CC3D"
+		}
+		seenBoards[uuid] = b
+	}
+
+	items := map[string]FoundController{}
+	for _, b := range seenBoards {
 		uuid := b.UUID
 		if uuid == "" {
 			if b.CPU == "" {

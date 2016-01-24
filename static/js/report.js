@@ -37,8 +37,12 @@ function drawOSGraph(data) {
 
         chart.yAxis.tickFormat(d3.format(',d'));
 
+        var entries = d3.entries(data['os_board']).map(function(e) {
+            return {key: e.key, value: d3.sum(d3.values(e.value))};
+        });
+
         d3.select('#oses svg')
-            .datum([{key: 'OSes', values: d3.entries(data['os'])}])
+            .datum([{key: 'OSes', values: entries}])
             .transition().duration(500)
             .call(chart)
         ;
@@ -58,8 +62,12 @@ function drawVersionGraph(data) {
             .valueFormat(d3.format(',f'))
             .showLabels(true);
 
+        var entries = d3.entries(data['version_board']).map(function(e) {
+            return {key: e.key, value: d3.sum(d3.values(e.value))};
+        });
+
         d3.select("#versions svg")
-            .datum(d3.entries(data['version']))
+            .datum(entries)
             .transition().duration(1200)
             .call(chart);
 

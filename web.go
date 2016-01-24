@@ -898,19 +898,17 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := struct {
-		OS       map[string]int            `json:"os"`
-		OSBoard  map[string]map[string]int `json:"os_board"`
-		OSDetail map[string]int            `json:"os_detail"`
-		Board    map[string]int            `json:"board"`
-		Country  map[string]int            `json:"country"`
-		Version  map[string]int            `json:"version"`
+		OSBoard      map[string]map[string]int `json:"os_board"`
+		OSDetail     map[string]int            `json:"os_detail"`
+		Board        map[string]int            `json:"board"`
+		CountryBoard map[string]map[string]int `json:"country_board"`
+		VersionBoard map[string]map[string]int `json:"version_board"`
 	}{
-		OS:       map[string]int{},
-		OSBoard:  map[string]map[string]int{},
-		OSDetail: map[string]int{},
-		Board:    map[string]int{},
-		Country:  map[string]int{},
-		Version:  map[string]int{},
+		OSBoard:      map[string]map[string]int{},
+		OSDetail:     map[string]int{},
+		Board:        map[string]int{},
+		CountryBoard: map[string]map[string]int{},
+		VersionBoard: map[string]map[string]int{},
 	}
 
 	q := datastore.NewQuery("FoundController").Order("-timestamp")
@@ -922,10 +920,15 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		results.OS[abbrevOS(x.GCSOS)]++
 		results.OSDetail[x.GCSOS]++
 		results.Board[x.Name]++
-		results.Country[x.Country]++
+
+		cb, ok := results.CountryBoard[x.Country]
+		if !ok {
+			cb = map[string]int{}
+		}
+		cb[x.Name]++
+		results.CountryBoard[x.Country] = cb
 
 		ob, ok := results.OSBoard[abbrevOS(x.GCSOS)]
 		if !ok {
@@ -938,7 +941,13 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		if lbls := gitDescribe(x.GitHash, gitl); lbls != nil {
 			ref = lbls[0].Label
 		}
-		results.Version[ref]++
+
+		vb, ok := results.VersionBoard[ref]
+		if !ok {
+			vb = map[string]int{}
+		}
+		vb[x.Name]++
+		results.VersionBoard[ref] = vb
 	}
 
 	memcache.JSON.Set(c, &memcache.Item{

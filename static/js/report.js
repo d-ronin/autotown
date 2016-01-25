@@ -103,6 +103,8 @@ function drawOSGraph(data) {
     });
 }
 
+var interestingRegex = /^(preview-|Release-)/;
+
 function drawVersionGraph(data) {
     nv.addGraph(function() {
         var chart = nv.models.pieChart()
@@ -113,7 +115,10 @@ function drawVersionGraph(data) {
             .showLabels(true);
 
         var entries = d3.entries(data['version_board']).map(function(e) {
-            return {key: e.key, value: d3.sum(d3.values(e.value))};
+            return {key: e.key,
+                    value: d3.sum(d3.values(e.value)),
+                    disabled: !interestingRegex.test(e.key),
+                   };
         });
 
         d3.select("#versions svg")

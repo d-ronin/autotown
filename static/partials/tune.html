@@ -19,7 +19,7 @@
   </table>
 </div>
 
-<h2>Tune Details for a {{tune.Board}} {{tune.Timestamp|relDate}}</h2>
+<h2>Tune Details for a {{tune.Board}} in a {{tune.Orig.vehicle.type}} at {{tune.Timestamp|relDate}}</h2>
 
 <p>
   <tt>{{tune.Orig.vehicle.firmware.tag}}@<a
@@ -32,6 +32,7 @@
 </p>
 
 <table>
+  <tr><th>Type</th><td>{{tune.Orig.vehicle.type}}</td></tr>
   <tr><th>Size</th><td>{{tune.Orig.vehicle.size}}</td></tr>
   <tr><th>Motor</th><td>{{tune.Orig.vehicle.motor}}</td></tr>
   <tr><th>ESC</th><td>{{tune.Orig.vehicle.esc}}</td></tr>

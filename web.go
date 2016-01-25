@@ -520,6 +520,11 @@ func computeIceeTune(c context.Context, data []byte) map[string]float64 {
 		return nil
 	}
 
+	if len(tune.RawSettings.SystemIdent.Fields.Beta) < 3 {
+		log.Infof(c, "Error computing iceetune, not enough beta: %#v", tune)
+		return nil
+	}
+
 	kp := tune.Tuning.Computed.Gains.Pitch.KP
 	ki := tune.Tuning.Computed.Gains.Pitch.KI
 	kd := tune.Tuning.Computed.Gains.Pitch.KD

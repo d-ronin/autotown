@@ -55,13 +55,9 @@ function drawProcessorGraph(data) {
         var values = {'F1': 0, 'F3': 0, 'F4': 0};
         d3.map(data['board']).forEach(function(k, v) {
             if (processorTypes[k]) {
-                console.log("Adding", v, "to", processorTypes[k], "for", k);
                 values[processorTypes[k]] += v;
-            } else {
-                console.log("Skipping", k);
             }
         });
-        console.log("Totals:", JSON.stringify(values));
 
         d3.select('#procs svg')
             .datum([{'key': 'Procs', values: d3.entries(values)}])

@@ -42,11 +42,16 @@
         width: 800px;
       }
 
-      #oses {
+      #oproc {
         float: right;
       }
 
       #oses svg {
+        height: 200px;
+        width: 300px;
+      }
+
+      #procs svg {
         height: 200px;
         width: 300px;
       }
@@ -61,7 +66,10 @@
 
   <body>
     <div id="boards"><h2>Boards (<span id="totalboards">0</span> total)</h2><svg></svg></div>
-    <div id="oses"><h2>OSes</h2><svg></svg></div>
+    <div id="oproc">
+      <div id="procs"><h2>Processors</h2><svg></svg></div>
+      <div id="oses"><h2>OSes</h2><svg></svg></div>
+    </div>
     <div id="versions"><h2>Versions</h2><svg></svg></div>
   </body>
 
@@ -75,6 +83,8 @@
         drawBoardGraph(data);
         drawOSGraph(data);
         drawVersionGraph(data);
+        drawProcessorGraph(data);
+
       });
   </script>
 </html>

@@ -25,6 +25,56 @@ function drawBoardGraph(data) {
     });
 }
 
+var processorTypes = {
+    "AQ32":'F4',
+    "Brain":'F4',
+    "BrainRE1":'F4',
+    "CC3D":'F1',
+    "Lux":'F3',
+    "Naze":'F1',
+    "Naze32Pro":'F3',
+    "RevoMini":'F4',
+    "Sparky":'F3',
+    "Sparky2":'F4',
+    "flyingf3":'F3',
+    "quanton":'F4',
+};
+
+function drawProcessorGraph(data) {
+    nv.addGraph(function() {
+        var chart = nv.models.discreteBarChart()
+            .x(function(d) { return d.key })
+            .y(function(d) { return d.value })
+            .staggerLabels(true)
+            .tooltips(false)
+            .valueFormat(d3.format(',f'))
+            .showValues(true);
+
+        chart.yAxis.tickFormat(d3.format(',d'));
+
+        var values = {'F1': 0, 'F3': 0, 'F4': 0};
+        d3.map(data['board']).forEach(function(k, v) {
+            if (processorTypes[k]) {
+                console.log("Adding", v, "to", processorTypes[k], "for", k);
+                values[processorTypes[k]] += v;
+            } else {
+                console.log("Skipping", k);
+            }
+        });
+        console.log("Totals:", JSON.stringify(values));
+
+        d3.select('#procs svg')
+            .datum([{'key': 'Procs', values: d3.entries(values)}])
+            .transition().duration(500)
+            .call(chart)
+        ;
+
+        nv.utils.windowResize(chart.update);
+
+        return chart;
+    });
+}
+
 function drawOSGraph(data) {
     nv.addGraph(function() {
         var chart = nv.models.discreteBarChart()

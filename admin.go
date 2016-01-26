@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/simonz05/util/syncutil"
+
 	"crypto/sha256"
 
 	"google.golang.org/appengine"
@@ -264,6 +266,7 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 		items[uuid] = fc
 	}
 
+	newBoard := ""
 	var keys []*datastore.Key
 	var toUpdate []FoundController
 	for k, v := range items {
@@ -272,6 +275,7 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 		err := datastore.Get(c, key, prev)
 		switch err {
 		case datastore.ErrNoSuchEntity:
+			newBoard = v.Name
 		case nil:
 		default:
 			log.Errorf(c, "Error fetching tune: %v", err)
@@ -290,9 +294,23 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 		toUpdate = append(toUpdate, v)
 	}
 
-	log.Infof(c, "Updating %v items", len(keys))
-	_, err = datastore.PutMulti(c, keys, toUpdate)
-	if err != nil {
+	g := syncutil.Group{}
+	g.Go(func() error {
+		log.Infof(c, "Updating %v items", len(keys))
+		_, err = datastore.PutMulti(c, keys, toUpdate)
+		return err
+	})
+
+	if newBoard != "" {
+		g.Go(func() error {
+			if err := notify(c, "New Device", newBoard, statsURL); err != nil {
+				log.Infof(c, "Error notifying about new board: %v", err)
+			}
+			return nil
+		})
+	}
+
+	if err := g.Err(); err != nil {
 		log.Errorf(c, "Error updating controller records: %v", err)
 		http.Error(w, err.Error(), 500)
 		return

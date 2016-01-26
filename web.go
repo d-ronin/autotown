@@ -37,6 +37,8 @@ import (
 	"google.golang.org/cloud/storage"
 )
 
+const statsURL = "http://dronin-autotown.appspot.com/static/stats.html"
+
 var templates *template.Template
 
 func init() {
@@ -156,7 +158,17 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Location", "https://dronin-autotown.appspot.com/at/tune/"+k.Encode())
+	tuneURL := "https://dronin-autotown.appspot.com/at/tune/" + k.Encode()
+
+	err = notify(c, "New Tune",
+		fmt.Sprintf("Someone posted a new tune from a %v with %.2 mS tau",
+			fields.Vehicle.Firmware.Board, fields.Identification.Tau),
+		tuneURL)
+	if err != nil {
+		log.Infof(c, "Error notifying of tune: %v", err)
+	}
+
+	w.Header().Set("Location", tuneURL)
 	w.WriteHeader(201)
 }
 

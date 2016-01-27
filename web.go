@@ -161,8 +161,8 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 	tuneURL := "https://dronin-autotown.appspot.com/at/tune/" + k.Encode()
 
 	err = notify(c, "New Tune",
-		fmt.Sprintf("Someone posted a new tune from a %v with %.2 mS tau",
-			fields.Vehicle.Firmware.Board, fields.Identification.Tau),
+		fmt.Sprintf("Someone posted a new tune from a %v with %.2f mS tau",
+			fields.Vehicle.Firmware.Board, 1000.0*fields.Identification.Tau),
 		tuneURL)
 	if err != nil {
 		log.Infof(c, "Error notifying of tune: %v", err)

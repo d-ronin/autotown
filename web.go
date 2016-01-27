@@ -823,7 +823,7 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 		}{}
 		var boards []string
 		if err := <-fetcherr; err != nil {
-			log.Warningf(c, "Couldn't fetch recent values from memcached: %v", err)
+			log.Infof(c, "Couldn't fetch recent values from memcached: %v", err)
 		} else {
 			if err := json.Unmarshal([]byte(*d.RawData), &decoded); err != nil {
 				log.Warningf(c, "Error decoding usage details: %v", err)

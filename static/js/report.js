@@ -25,6 +25,35 @@ function drawBoardGraph(data) {
     });
 }
 
+function drawCountryGraph(data) {
+    nv.addGraph(function() {
+        var chart = nv.models.discreteBarChart()
+            .x(function(d) { return d.key })
+            .y(function(d) { return d.value })
+            .staggerLabels(true)
+            .tooltips(false)
+            .valueFormat(d3.format(',f'))
+            .showValues(true);
+
+        chart.yAxis.tickFormat(d3.format(',d'));
+
+        var values = d3.entries(data['country_board']).map(function(e) {
+            return {key: e.key, value: d3.sum(d3.values(e.value))};
+        });
+        values.sort(function (a, b) {return d3.descending(a.value, b.value); });
+
+        d3.select('#countries svg')
+            .datum([{'key': 'Countries', values: values}])
+            .transition().duration(500)
+            .call(chart)
+        ;
+
+        nv.utils.windowResize(chart.update);
+
+        return chart;
+    });
+}
+
 var processorTypes = {
     "AQ32":'F4',
     "Brain":'F4',

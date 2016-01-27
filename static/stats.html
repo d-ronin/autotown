@@ -61,6 +61,10 @@
         width: 500px;
       }
 
+      #countries svg {
+        height: 450px;
+        width: 800px;
+      }
     </style>
   </head>
 
@@ -71,6 +75,7 @@
       <div id="oses"><h2>OSes</h2><svg></svg></div>
     </div>
     <div id="versions"><h2>Versions</h2><svg></svg></div>
+    <div id="countries"><h2>Countries</h2><svg></svg></div>
   </body>
 
   <script src="/static/js/report.js"></script>
@@ -82,9 +87,9 @@
         d3.select("#totalboards").text(d3.format(",d")(total));
         drawBoardGraph(data);
         drawOSGraph(data);
+        drawCountryGraph(data);
         drawVersionGraph(data);
         drawProcessorGraph(data);
-
       });
   </script>
 </html>

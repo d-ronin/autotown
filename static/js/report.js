@@ -101,6 +101,14 @@ function drawCountryMap(data) {
                 .attr("class", "boundary")
                 .attr("d", path);
 
+            var tooltip = d3.select("#countrymap")
+                .append("div")
+                  .attr("class", "nvtooltip xy-tooltip nv-pointer-events-none")
+                  .style("position", "absolute")
+                  .style("z-index", "10")
+                  .style("visibility", "hidden")
+                  .text("");
+
             svg.selectAll("#countrymap svg .cluster")
                 .data(boards)
                 .enter().append("svg:circle")
@@ -110,7 +118,16 @@ function drawCountryMap(data) {
                 .attr("cx", function(d) {  return projection([d.lon, d.lat])[0]; })
                 .attr("cy", function(d) { return projection([d.lon, d.lat])[1]; })
                 .attr("fill", function(d) { return colors(d.name); })
-                .attr("r", 0);
+                .attr("r", 0)
+                .on("mouseover", function(d){
+                                          var ref = (d.ref || d.git_hash);
+                    tooltip.text("A " + d.name + " on " + ref + " in " + d.city + ", " + d.region + ", " + d.country);
+                    return tooltip.style("visibility", "visible");})
+                .on("mousemove", function() {
+                    return tooltip.style("top", (d3.event.pageY-10)+"px")
+                                  .style("left",(d3.event.pageX+10)+"px");})
+                .on("mouseout", function()
+                    {return tooltip.style("visibility", "hidden");});
 
             svg.selectAll("#countrymap svg .cluster")
                 .data(boards)

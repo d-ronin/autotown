@@ -17,9 +17,8 @@
     <style>
       body {
         font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-        margin: auto;
-        position: relative;
         width: 960px;
+        margin: auto;
       }
 
       text {
@@ -72,6 +71,11 @@
         width: 800px;
       }
 
+      #countrymap {
+        height: 450;
+        width: 800;
+      }
+
       #countrymap svg .graticule {
         fill: none;
         stroke: #999;
@@ -92,14 +96,16 @@
   </head>
 
   <body>
-    <div id="boards"><h2>Boards (<span id="totalboards">0</span> total)</h2><svg></svg></div>
-    <div id="oproc">
-      <div id="procs"><h2>Processors</h2><svg></svg></div>
-      <div id="oses"><h2>OSes</h2><svg></svg></div>
+    <div id="charts">
+      <div id="boards"><h2>Boards (<span id="totalboards">0</span> total)</h2><svg></svg></div>
+      <div id="oproc">
+        <div id="procs"><h2>Processors</h2><svg></svg></div>
+        <div id="oses"><h2>OSes</h2><svg></svg></div>
+      </div>
+      <div id="versions"><h2>Versions</h2><svg></svg></div>
+      <div id="countrymap"></div>
+      <div id="countries"><h2>Countries</h2><svg></svg></div>
     </div>
-    <div id="versions"><h2>Versions</h2><svg></svg></div>
-    <div id="countries"><h2>Countries</h2><svg></svg></div>
-    <div id="countrymap"></div>
   </body>
 
   <script src="/static/js/report.js"></script>

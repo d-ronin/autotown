@@ -54,6 +54,80 @@ function drawCountryGraph(data) {
     });
 }
 
+function drawCountryMap(data) {
+    d3_queue.queue()
+        .defer(d3_request.requestJson, "/static/lib/world-50m.json")
+        .defer(d3_request.requestCsv, "/api/usageDetails")
+        .awaitAll(function(error, results) {
+            if (error) {
+                console.log(error);
+                return;
+            }
+
+            var world = results[0];
+            var boards = results[1];
+
+            var colors = d3.scale.category20();
+
+            var width = 800,
+                height = 450;
+
+            var projection = d3.geo.mercator()
+                .scale((width + 1) / 2 / Math.PI)
+                .translate([width / 2, height / 2])
+                .precision(.1);
+
+            var path = d3.geo.path()
+                .projection(projection);
+
+            var graticule = d3.geo.graticule();
+
+            var svg = d3.select("#countrymap").append("svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            svg.append("path")
+                .datum(graticule)
+                .attr("class", "graticule")
+                .attr("d", path);
+
+            svg.insert("path", ".graticule")
+                .datum(topojson.feature(world, world.objects.land))
+                .attr("class", "land")
+                .attr("d", path);
+
+            svg.insert("path", ".graticule")
+                .datum(topojson.mesh(world, world.objects.countries, function(a, b) { return a !== b; }))
+                .attr("class", "boundary")
+                .attr("d", path);
+
+            svg.selectAll("#countrymap svg .cluster")
+                .data(boards)
+                .enter().append("svg:circle")
+                .attr("class", function(d) {
+                    return "cluster board-" + d.name;
+                })
+                .attr("cx", function(d) {  return projection([d.lon, d.lat])[0]; })
+                .attr("cy", function(d) { return projection([d.lon, d.lat])[1]; })
+                .attr("fill", function(d) { return colors(d.name); })
+                .attr("r", 0);
+
+            svg.selectAll("#countrymap svg .cluster")
+                .data(boards)
+                .exit().remove();
+
+            svg.selectAll("#countrymap svg .cluster")
+                .data(boards)
+                .transition()
+                .duration(3000)
+                .ease('bounce')
+                .attr("r", 2);
+
+
+            d3.select(self.frameElement).style("height", height + "px");
+        });
+}
+
 var processorTypes = {
     "AQ32":'F4',
     "Brain":'F4',

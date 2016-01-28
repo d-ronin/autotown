@@ -5,8 +5,14 @@
     <title>dRonin Stats</title>
     <link href="/static/stylesheets/nv.d3.css" rel="stylesheet" type="text/css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
-    <script src="/static/lib/queue.v1.min.js"></script>
+    <script src="//d3js.org/topojson.v1.min.js" charset="utf-8"></script>
+    <script src="https://d3js.org/d3-queue.v2.min.js"></script>
+    <script src="https://d3js.org/d3-collection.v0.1.min.js"></script>
+    <script src="https://d3js.org/d3-dispatch.v0.2.min.js"></script>
+    <script src="https://d3js.org/d3-dsv.v0.1.min.js"></script>
+    <script src="https://d3js.org/d3-request.v0.3.min.js"></script>
     <script src="/static/lib/nv.d3.min.js"></script>
+
 
     <style>
       body {
@@ -65,6 +71,23 @@
         height: 450px;
         width: 800px;
       }
+
+      #countrymap svg .graticule {
+        fill: none;
+        stroke: #999;
+        stroke-opacity: .5;
+        stroke-width: .5px;
+      }
+
+      #countrymap svg .land {
+        fill: #eee;
+      }
+
+      #countrymap svg .boundary {
+        fill: none;
+        stroke: #fff;
+        stroke-width: .5px;
+      }
     </style>
   </head>
 
@@ -76,11 +99,12 @@
     </div>
     <div id="versions"><h2>Versions</h2><svg></svg></div>
     <div id="countries"><h2>Countries</h2><svg></svg></div>
+    <div id="countrymap"></div>
   </body>
 
   <script src="/static/js/report.js"></script>
   <script lang="javascript">
-    d3.json("/api/usageStats", function(error, data) {
+    d3.json("//dronin-autotown.appspot.com/api/usageStats", function(error, data) {
     if (error) return console.warn(error);
         var total = 0;
         d3.map(data['board']).forEach(function(k, v) { total += v; });
@@ -88,6 +112,7 @@
         drawBoardGraph(data);
         drawOSGraph(data);
         drawCountryGraph(data);
+        drawCountryMap(data);
         drawVersionGraph(data);
         drawProcessorGraph(data);
       });

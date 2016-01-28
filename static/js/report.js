@@ -1,3 +1,5 @@
+var boardColors = d3.scale.category20();
+
 function drawBoardGraph(data) {
     nv.addGraph(function() {
         var chart = nv.models.discreteBarChart()
@@ -6,6 +8,7 @@ function drawBoardGraph(data) {
             .staggerLabels(true)
             .tooltips(false)
             .valueFormat(d3.format(',f'))
+            .color(function(d) { return boardColors(d.key);})
             .showValues(true);
 
         chart.yAxis.tickFormat(d3.format(',d'));
@@ -57,7 +60,7 @@ function drawCountryGraph(data) {
 function drawCountryMap(data) {
     d3_queue.queue()
         .defer(d3_request.requestJson, "/static/lib/world-50m.json")
-        .defer(d3_request.requestCsv, "/api/usageDetails")
+        .defer(d3_request.requestCsv, "//dronin-autotown.appspot.com/api/usageDetails")
         .awaitAll(function(error, results) {
             if (error) {
                 console.log(error);
@@ -66,8 +69,6 @@ function drawCountryMap(data) {
 
             var world = results[0];
             var boards = results[1].filter(function(d) { return d.lon != 0 && d.lat != 0; });
-
-            var colors = d3.scale.category20();
 
             var width = 800,
                 height = 450;
@@ -117,7 +118,7 @@ function drawCountryMap(data) {
                 })
                 .attr("cx", function(d) {  return projection([d.lon, d.lat])[0]; })
                 .attr("cy", function(d) { return projection([d.lon, d.lat])[1]; })
-                .attr("fill", function(d) { return colors(d.name); })
+                .attr("fill", function(d) { return boardColors(d.name); })
                 .attr("r", 0)
                 .on("mouseover", function(d){
                                           var ref = (d.ref || d.git_hash);

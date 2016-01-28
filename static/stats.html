@@ -12,6 +12,7 @@
     <script src="https://d3js.org/d3-dsv.v0.1.min.js"></script>
     <script src="https://d3js.org/d3-request.v0.3.min.js"></script>
     <script src="/static/lib/nv.d3.min.js"></script>
+    <script src="/static/lib/moment.min.js"></script>
 
     <style>
       body {
@@ -102,6 +103,7 @@
       <div id="countrymap"></div>
       <div id="countries"><h2>Countries</h2><svg></svg></div>
     </div>
+    <div id="recentusage"></div>
   </body>
 
   <script src="/static/js/report.js"></script>
@@ -117,6 +119,10 @@
         drawCountryMap(data);
         drawVersionGraph(data);
         drawProcessorGraph(data);
-      });
+    });
+    d3.json("//dronin-autotown.appspot.com/api/recentUsage", function(error, data) {
+      if (error) return console.warn(error);
+      showRecent(data);
+    });
   </script>
 </html>

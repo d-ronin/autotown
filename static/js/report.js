@@ -289,3 +289,20 @@ function drawVersionGraph(data) {
         return chart;
     });
 }
+
+function showRecent(data) {
+    data.reverse();
+    var ul = d3.select("#recentusage").append("ul");
+
+    ul.selectAll("ul").data(data)
+        .enter().append("li")
+        .html(function(d) {
+            console.log(d);
+            var ts = moment(d.timestamp).fromNow();
+            var t = "<span title=\"" + d.timestamp + "\">" + ts + "</span> - " + d.os  + " from " + [d.city, d.region, d.country].join(", ");
+            if (d.boards) {
+                t += " with <tt>" + d.boards.join(", ") + "</tt>";
+            }
+            return t;
+        });
+}

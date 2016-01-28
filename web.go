@@ -820,7 +820,7 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 			GCSVersion string `json:"gcs_version"`
 			Boards     []struct {
 				Name string
-			} `json:"boards_seen"`
+			} `json:"boardsSeen"`
 		}{}
 		var boards []string
 		if err := <-fetcherr; err != nil {
@@ -845,7 +845,7 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 			City:    d.City,
 			Lat:     d.Lat,
 			Lon:     d.Lon,
-			OS:      decoded.CurrentOS,
+			OS:      abbrevOS(decoded.CurrentOS),
 			Version: decoded.GCSVersion,
 			Boards:  boards,
 		})

@@ -71,7 +71,8 @@ function drawCountryMap(data) {
             var boards = results[1].filter(function(d) { return d.lon != 0 && d.lat != 0; });
 
             var width = 800,
-                height = 450;
+                height = 450,
+                centered;
 
             var projection = d3.geo.mercator()
                 .scale((width + 1) / 2 / Math.PI)
@@ -87,25 +88,68 @@ function drawCountryMap(data) {
                 .attr("width", width)
                 .attr("height", height);
 
-            svg.insert("path", ".graticule")
-                .datum(topojson.feature(world, world.objects.land))
-                .attr("class", "land")
-                .attr("d", path);
+            var g = svg.append("g");
 
-            svg.insert("path", ".graticule")
+            var clickedMap = function(d) {
+                var x, y, k;
+                if (d && d.lat) {
+                    var p = projection([d.lon, d.lat]);
+                    x = p[0];
+                    y = p[1];
+                    k = 4;
+                } else if (d) {
+                    var centroid = path.centroid(d);
+                    x = centroid[0];
+                    y = centroid[1];
+                    k = 4;
+                } else {
+                    x = width / 2;
+                    y = height / 2;
+                    k = 1;
+                    centered = null;
+                }
+
+                g.selectAll("path")
+                    .classed("active", centered && function(d) { return d === centered; });
+
+                g.transition()
+                    .duration(750)
+                    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")scale(" + k + ")translate(" + -x + "," + -y + ")")
+                    .style("stroke-width", 1.5 / k + "px");
+
+            }
+
+
+            g.append("rect")
+                .attr("class", "background")
+                .attr("width", width)
+                .attr("height", height)
+                .on("click", clickedMap);
+
+            g.append("g")
+                .attr("id", "countries")
+                .selectAll("path")
+                .data(topojson.feature(world, world.objects.countries).features)
+              .enter().append("path")
+                .attr("d", path)
+                .attr("class", "land")
+                .on("click", clickedMap);
+
+            g.append("path")
                 .datum(topojson.mesh(world, world.objects.countries, function(a, b) { return a !== b; }))
                 .attr("class", "boundary")
                 .attr("d", path);
 
+
             var tooltip = d3.select("#countrymap")
                 .append("div")
-                  .attr("class", "nvtooltip xy-tooltip nv-pointer-events-none")
-                  .style("position", "absolute")
-                  .style("z-index", "10")
-                  .style("visibility", "hidden")
-                  .text("");
+                .attr("class", "nvtooltip xy-tooltip nv-pointer-events-none")
+                .style("position", "absolute")
+                .style("z-index", "10")
+                .style("visibility", "hidden")
+                .text("");
 
-            svg.selectAll("#countrymap svg .cluster")
+            g.selectAll("#countrymap svg .cluster")
                 .data(boards)
                 .enter().append("svg:circle")
                 .attr("class", function(d) {
@@ -116,20 +160,22 @@ function drawCountryMap(data) {
                 .attr("fill", function(d) { return boardColors(d.name); })
                 .attr("r", 0)
                 .on("mouseover", function(d){
-                                          var ref = (d.ref || d.git_hash);
+                    var ref = (d.ref || d.git_hash);
                     tooltip.text("A " + d.name + " on " + ref + " in " + d.city + ", " + d.region + ", " + d.country);
                     return tooltip.style("visibility", "visible");})
                 .on("mousemove", function() {
                     return tooltip.style("top", (d3.event.pageY-10)+"px")
-                                  .style("left",(d3.event.pageX+10)+"px");})
+                        .style("left",(d3.event.pageX+10)+"px");})
                 .on("mouseout", function()
-                    {return tooltip.style("visibility", "hidden");});
+                    {return tooltip.style("visibility", "hidden");})
+                .on("click", clickedMap);
 
-            svg.selectAll("#countrymap svg .cluster")
+
+            g.selectAll("#countrymap svg .cluster")
                 .data(boards)
                 .exit().remove();
 
-            svg.selectAll("#countrymap svg .cluster")
+            g.selectAll("#countrymap svg .cluster")
                 .data(boards)
                 .transition()
                 .duration(3000)

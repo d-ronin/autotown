@@ -292,7 +292,7 @@ function drawVersionGraph(data) {
 
 function showRecent(data) {
     data.reverse();
-    var ul = d3.select("#recentusage").append("ul");
+    var ul = d3.select("#recent").append("ul");
 
     ul.selectAll("ul").data(data)
         .enter().append("li")

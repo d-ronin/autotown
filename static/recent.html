@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>dRonin Recent Usage</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
+    <script src="/static/lib/moment.min.js"></script>
+
+    <style>
+      body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        width: 960px;
+        margin: auto;
+      }
+    </style>
+  </head>
+  
+<body>
+  <div id="recent"></div>
+</body>
+
+  <script src="/static/js/report.js"></script>
+  <script lang="javascript">
+    d3.json("//dronin-autotown.appspot.com/api/recentUsage", function(error, data) {
+      if (error) return console.warn(error);
+      showRecent(data);
+    });
+  </script>
+</html>

@@ -117,6 +117,8 @@ function drawCountryMap(data) {
                     .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")scale(" + k + ")translate(" + -x + "," + -y + ")")
                     .style("stroke-width", 1.5 / k + "px");
 
+                g.selectAll("#countrymap svg .cluster").transition().duration(1200)
+                    .attr("r", 2/k);
             }
 
 

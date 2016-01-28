@@ -96,7 +96,7 @@ function drawCountryMap(data) {
                     var p = projection([d.lon, d.lat]);
                     x = p[0];
                     y = p[1];
-                    k = 4;
+                    k = 6;
                 } else if (d) {
                     var centroid = path.centroid(d);
                     x = centroid[0];

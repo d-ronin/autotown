@@ -87,11 +87,6 @@ function drawCountryMap(data) {
                 .attr("width", width)
                 .attr("height", height);
 
-            svg.append("path")
-                .datum(graticule)
-                .attr("class", "graticule")
-                .attr("d", path);
-
             svg.insert("path", ".graticule")
                 .datum(topojson.feature(world, world.objects.land))
                 .attr("class", "land")

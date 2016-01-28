@@ -59,7 +59,7 @@ function drawCountryGraph(data) {
 
 function drawCountryMap(data) {
     d3_queue.queue()
-        .defer(d3_request.requestJson, "/static/lib/world-50m.json")
+        .defer(d3_request.requestJson, "/static/lib/world-110m.json")
         .defer(d3_request.requestCsv, "//dronin-autotown.appspot.com/api/usageDetails")
         .awaitAll(function(error, results) {
             if (error) {

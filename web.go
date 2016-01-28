@@ -909,12 +909,14 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		OSBoard      map[string]map[string]int `json:"os_board"`
 		OSDetail     map[string]int            `json:"os_detail"`
 		Board        map[string]int            `json:"board"`
+		BoardRev     map[string]map[string]int `json:"board_rev"`
 		CountryBoard map[string]map[string]int `json:"country_board"`
 		VersionBoard map[string]map[string]int `json:"version_board"`
 	}{
 		OSBoard:      map[string]map[string]int{},
 		OSDetail:     map[string]int{},
 		Board:        map[string]int{},
+		BoardRev:     map[string]map[string]int{},
 		CountryBoard: map[string]map[string]int{},
 		VersionBoard: map[string]map[string]int{},
 	}
@@ -944,6 +946,13 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		}
 		ob[x.Name]++
 		results.OSBoard[abbrevOS(x.GCSOS)] = ob
+
+		br, ok := results.BoardRev[x.Name]
+		if !ok {
+			br = map[string]int{}
+		}
+		br[fmt.Sprint(x.HardwareRev)]++
+		results.BoardRev[x.Name] = br
 
 		ref := "Unknown"
 		if lbls := gitDescribe(x.GitHash, gitl); lbls != nil {
@@ -978,7 +987,7 @@ func handleUsageStatsDetails(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 
 	header := []string{"timestamp", "oldest", "count",
-		"name", "git_hash", "git_tag", "ref",
+		"name", "hwev", "git_hash", "git_tag", "ref",
 		"gcs_os", "gcs_os_abbrev", "gcs_version",
 		"country", "region", "city", "lat", "lon",
 	}
@@ -1004,7 +1013,7 @@ func handleUsageStatsDetails(w http.ResponseWriter, r *http.Request) {
 		cw.Write(append([]string{
 			x.Timestamp.Format(time.RFC3339), x.Oldest.Format(time.RFC3339),
 			fmt.Sprint(x.Count),
-			x.Name, x.GitHash, x.GitTag, ref,
+			x.Name, fmt.Sprint(x.HardwareRev), x.GitHash, x.GitTag, ref,
 			x.GCSOS, abbrevOS(x.GCSOS), x.GCSVersion,
 			x.Country, x.Region, x.City, fmt.Sprint(x.Lat), fmt.Sprint(x.Lon)},
 		))

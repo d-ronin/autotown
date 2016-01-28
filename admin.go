@@ -166,6 +166,7 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 }
 
 type usageSeenBoard struct {
+	ID        int
 	CPU, UUID string
 	FwHash    string
 	GitHash   string
@@ -237,6 +238,7 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 		fc := items[uuid]
 		if d.Timestamp.After(fc.Timestamp) {
 			fc.UUID = uuid
+			fc.HardwareRev = b.ID & 0xff
 			fc.Name = b.Name
 			fc.GitHash = b.GitHash
 			fc.GitTag = b.GitTag
@@ -347,7 +349,7 @@ func handleExportBoards(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 
 	header := []string{"timestamp", "oldest", "count",
-		"uuid", "name", "git_hash", "git_tag", "ref", "uavo_hash",
+		"uuid", "name", "hwrev", "git_hash", "git_tag", "ref", "uavo_hash",
 		"gcs_os", "gcs_os_abbrev", "gcs_arch", "gcs_version",
 		"country", "region", "city", "lat", "lon",
 	}
@@ -373,7 +375,7 @@ func handleExportBoards(w http.ResponseWriter, r *http.Request) {
 		cw.Write(append([]string{
 			x.Timestamp.Format(time.RFC3339), x.Oldest.Format(time.RFC3339),
 			fmt.Sprint(x.Count),
-			x.UUID, x.Name, x.GitHash, x.GitTag, ref, x.UAVOHash,
+			x.UUID, x.Name, fmt.Sprint(x.HardwareRev), x.GitHash, x.GitTag, ref, x.UAVOHash,
 			x.GCSOS, abbrevOS(x.GCSOS), x.GCSArch, x.GCSVersion,
 			x.Country, x.Region, x.City, fmt.Sprint(x.Lat), fmt.Sprint(x.Lon)},
 		))

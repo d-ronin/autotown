@@ -164,12 +164,13 @@ func (t *UsageStat) uncompress() error {
 }
 
 type FoundController struct {
-	UUID     string `datastore:"uuid"`
-	Count    int    `datastore:"count"`
-	Name     string `datastore:"name"`
-	GitHash  string `datastore:"git_hash"`
-	GitTag   string `datastore:"git_tag"`
-	UAVOHash string `datastore:"uavo_hash"`
+	UUID        string `datastore:"uuid"`
+	Count       int    `datastore:"count"`
+	HardwareRev int    `datastore:"hardware_rev"`
+	Name        string `datastore:"name"`
+	GitHash     string `datastore:"git_hash"`
+	GitTag      string `datastore:"git_tag"`
+	UAVOHash    string `datastore:"uavo_hash"`
 
 	GCSOS      string `datastore:"gcs_os"`
 	GCSArch    string `datastore:"gss_arch"`

@@ -65,7 +65,7 @@ function drawCountryMap(data) {
             }
 
             var world = results[0];
-            var boards = results[1];
+            var boards = results[1].filter(function(d) { return d.lon != 0 && d.lat != 0; });
 
             var colors = d3.scale.category20();
 

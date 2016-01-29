@@ -570,22 +570,33 @@ func handleTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tunaKey := "/tune/" + k.String()
+
 	tune := &TuneResults{}
-	if err := datastore.Get(c, k, tune); err != nil {
-		log.Errorf(c, "Error fetching tune: %v", err)
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	tune.Key = k
+	_, err = memcache.JSON.Get(c, tunaKey, tune)
+	if err != nil {
+		log.Infof(c, "Cache miss on %v, materializing", tunaKey)
+		if err := datastore.Get(c, k, tune); err != nil {
+			log.Errorf(c, "Error fetching tune: %v", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		tune.Key = k
 
-	if err := tune.uncompress(); err != nil {
-		log.Errorf(c, "Error uncompressing tune details: %v", err)
-		http.Error(w, err.Error(), 500)
-		return
-	}
+		if err := tune.uncompress(); err != nil {
+			log.Errorf(c, "Error uncompressing tune details: %v", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
 
-	tune.Orig = (*json.RawMessage)(&tune.Data)
-	tune.Experimental = computeIceeTune(c, tune.Data)
+		tune.Orig = (*json.RawMessage)(&tune.Data)
+		tune.Experimental = computeIceeTune(c, tune.Data)
+
+		memcache.JSON.Set(c, &memcache.Item{
+			Key:    tunaKey,
+			Object: tune,
+		})
+	}
 
 	mustEncode(c, w, tune)
 }

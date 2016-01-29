@@ -56,8 +56,9 @@ func (c *CrashData) setKey(to *datastore.Key) {
 }
 
 type timestampedTau struct {
-	Tau       float64   `json:"tau"`
-	Timestamp time.Time `json:"timestamp"`
+	Tau       float64        `json:"tau"`
+	Timestamp time.Time      `json:"timestamp"`
+	Key       *datastore.Key `json:"key"`
 }
 
 type TuneResults struct {

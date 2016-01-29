@@ -498,7 +498,7 @@ func handleRecentTunes(w http.ResponseWriter, r *http.Request) {
 	for _, t := range res {
 		tune, ok := seen[t.UUID]
 		if ok {
-			tune.Older = append(tune.Older, timestampedTau{t.Tau, t.Timestamp})
+			tune.Older = append(tune.Older, timestampedTau{t.Tau, t.Timestamp, t.Key})
 		} else {
 			cp := t
 			seen[t.UUID] = &cp

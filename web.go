@@ -159,6 +159,8 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	memcache.Delete(c, recentTunesKey)
+
 	tuneURL := "https://dronin-autotown.appspot.com/at/tune/" + k.Encode()
 
 	err = notify(c, "New Tune",
@@ -468,14 +470,25 @@ func fillKeyQuery(c context.Context, q *datastore.Query, results interface{}) er
 	return err
 }
 
+const recentTunesKey = "recentTunes"
+
 func handleRecentTunes(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	q := datastore.NewQuery("TuneResults").Order("-timestamp").Limit(500)
+
 	res := []TuneResults{}
-	if err := fillKeyQuery(c, q, &res); err != nil {
-		log.Errorf(c, "Error fetching tune results: %v", err)
-		http.Error(w, err.Error(), 500)
-		return
+	_, err := memcache.JSON.Get(c, recentTunesKey, &res)
+	if err != nil {
+		q := datastore.NewQuery("TuneResults").Order("-timestamp").Limit(500)
+		if err := fillKeyQuery(c, q, &res); err != nil {
+			log.Errorf(c, "Error fetching tune results: %v", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		memcache.JSON.Set(c, &memcache.Item{
+			Key:        recentTunesKey,
+			Object:     res,
+			Expiration: time.Hour * 24,
+		})
 	}
 
 	rv := []*TuneResults{}

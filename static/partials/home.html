@@ -1,13 +1,13 @@
 <h1>dRonin Autotown</h1>
 
 <h2>Recent Tunes</h2>
-<table>
+<table id="recent-tunes">
   <thead>
     <tr>
-      <th>Timestamp</th>
-      <th>Board</th>
-      <th>Tau</th>
-      <th>Where</th>
+      <th id="rt-timestamp">Timestamp</th>
+      <th id="rt-board">Board</th>
+      <th id="rt-tau">Tau</th>
+      <th id="rt-loc">Where</th>
     </tr>
   </thead>
 
@@ -15,7 +15,10 @@
     <tr ng-repeat="t in recentTunes">
       <td title="{{t.Timestamp}}"><a href="/at/tune/{{t.Key}}">{{t.Timestamp|relDate}}</a></td>
       <td>{{t.Board}}</td>
-      <td style="text-align: right" title="{{t.Tau}}">{{t.Tau|tomillis}} ms</td>
+      <td class="tune-tau" title="{{olderFun(t)}}">
+        <span ng-show="t.older">* </span>
+        {{t.Tau|tomillis}} ms
+      </td>
       <td><a href="https://www.google.com/maps/@{{t.Lat}},{{t.Lon}},12z">{{t.City}},
           {{t.Region}} {{t.Country}}</a></td>
     </tr>

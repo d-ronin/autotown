@@ -470,7 +470,7 @@ func fillKeyQuery(c context.Context, q *datastore.Query, results interface{}) er
 
 func handleRecentTunes(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	q := datastore.NewQuery("TuneResults").Order("-timestamp").Limit(50)
+	q := datastore.NewQuery("TuneResults").Order("-timestamp").Limit(500)
 	res := []TuneResults{}
 	if err := fillKeyQuery(c, q, &res); err != nil {
 		log.Errorf(c, "Error fetching tune results: %v", err)
@@ -478,21 +478,20 @@ func handleRecentTunes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ids := map[string]string{}
-	nextId := 1
-	for i, x := range res {
-		id, ok := ids[x.UUID]
-		if !ok {
-			id = strconv.Itoa(nextId)
-			ids[x.UUID] = id
-			nextId++
+	rv := []*TuneResults{}
+	seen := map[string]*TuneResults{}
+	for _, t := range res {
+		tune, ok := seen[t.UUID]
+		if ok {
+			tune.Older = append(tune.Older, timestampedTau{t.Tau, t.Timestamp})
+		} else {
+			cp := t
+			seen[t.UUID] = &cp
+			rv = append(rv, &cp)
 		}
-		x.UUID = id
-
-		res[i] = x
 	}
 
-	mustEncode(c, w, res)
+	mustEncode(c, w, rv)
 }
 
 func computeIceeTune(c context.Context, data []byte) map[string]float64 {

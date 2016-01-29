@@ -51,6 +51,20 @@ autotown.controller('IndexCtrl', ['$scope', '$http',
                                   function($scope, $http) {
                                       $http.get("/api/recentTunes").success(function(data) {
                                           $scope.recentTunes = data;
+                                          $scope.olderFun = function(d) {
+                                              if (!d.older) {
+                                                  return ""
+                                              }
+                                              var rv = [];
+                                              for (var i = 0; i < d.older.length; i++) {
+                                                  var x = d.older[i];
+                                                  console.log("Doing", x);
+                                                  rv.push("" + (x.tau * 1000).toFixed(2) + "@" +
+                                                          moment(x.timestamp).fromNow());
+
+                                              }
+                                              return rv.join(', ');
+                                          };
                                       });
                                   }]);
 

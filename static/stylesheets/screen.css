@@ -23,3 +23,7 @@ div #relatedTunes h2 {
 div#relatedTunes tr.current {
     background: #ccc;
 }
+
+.tune-tau {
+    text-align: right;
+}

@@ -159,7 +159,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	memcache.Delete(c, recentTunesKey)
+	memcache.DeleteMulti(c, []string{recentTunesKey, relatedKey(k)})
 
 	tuneURL := "https://dronin-autotown.appspot.com/at/tune/" + k.Encode()
 
@@ -185,12 +185,14 @@ func handleAsyncStoreTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := datastore.Put(c, datastore.NewIncompleteKey(c, "TuneResults", nil), &t)
+	k, err := datastore.Put(c, datastore.NewIncompleteKey(c, "TuneResults", nil), &t)
 	if err != nil {
 		log.Warningf(c, "Error storing tune results item:  %v", err)
 		http.Error(w, "error storing tune results", 500)
 		return
 	}
+
+	memcache.DeleteMulti(c, []string{recentTunesKey, relatedKey(k)})
 
 	w.WriteHeader(201)
 }
@@ -560,6 +562,34 @@ func computeIceeTune(c context.Context, data []byte) map[string]float64 {
 	return rv
 }
 
+func getTune(c context.Context, k *datastore.Key) (*TuneResults, error) {
+	tunaKey := "/tune/" + k.String()
+
+	tune := &TuneResults{}
+	_, err := memcache.JSON.Get(c, tunaKey, tune)
+	if err != nil {
+		log.Infof(c, "Cache miss on %v, materializing", tunaKey)
+		if err := datastore.Get(c, k, tune); err != nil {
+			return nil, err
+		}
+		tune.Key = k
+
+		if err := tune.uncompress(); err != nil {
+			return nil, err
+		}
+
+		tune.Orig = (*json.RawMessage)(&tune.Data)
+		tune.Experimental = computeIceeTune(c, tune.Data)
+
+		memcache.JSON.Set(c, &memcache.Item{
+			Key:    tunaKey,
+			Object: tune,
+		})
+	}
+
+	return tune, nil
+}
+
 func handleTune(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
@@ -570,32 +600,11 @@ func handleTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tunaKey := "/tune/" + k.String()
-
-	tune := &TuneResults{}
-	_, err = memcache.JSON.Get(c, tunaKey, tune)
+	tune, err := getTune(c, k)
 	if err != nil {
-		log.Infof(c, "Cache miss on %v, materializing", tunaKey)
-		if err := datastore.Get(c, k, tune); err != nil {
-			log.Errorf(c, "Error fetching tune: %v", err)
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		tune.Key = k
-
-		if err := tune.uncompress(); err != nil {
-			log.Errorf(c, "Error uncompressing tune details: %v", err)
-			http.Error(w, err.Error(), 500)
-			return
-		}
-
-		tune.Orig = (*json.RawMessage)(&tune.Data)
-		tune.Experimental = computeIceeTune(c, tune.Data)
-
-		memcache.JSON.Set(c, &memcache.Item{
-			Key:    tunaKey,
-			Object: tune,
-		})
+		log.Errorf(c, "Error grabbing tune: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
 	}
 
 	mustEncode(c, w, tune)
@@ -619,6 +628,10 @@ func (r *relatedTune) setKey(to *datastore.Key) {
 	r.Key = to
 }
 
+func relatedKey(k *datastore.Key) string {
+	return "/rtune/" + k.String()
+}
+
 func handleRelatedTunes(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
@@ -629,30 +642,40 @@ func handleRelatedTunes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tune := &TuneResults{}
-	if err := datastore.Get(c, k, tune); err != nil {
+	tune, err := getTune(c, k)
+	if err != nil {
 		log.Errorf(c, "Error fetching tune: %v", err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	q := datastore.NewQuery("TuneResults").Filter("uuid = ", tune.UUID).
-		Order("-timestamp").Limit(50)
+	tunaKey := relatedKey(k)
 	res := []TuneResults{}
-	if err := fillKeyQuery(c, q, &res); err != nil {
-		log.Errorf(c, "Error fetching tune results: %v", err)
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
-	for _, r := range res {
-		if err := r.uncompress(); err != nil {
-			log.Errorf(c, "Error uncompressing tune details: %v", err)
+	_, err = memcache.JSON.Get(c, tunaKey, res)
+	if err != nil {
+		q := datastore.NewQuery("TuneResults").Filter("uuid = ", tune.UUID).
+			Order("-timestamp").Limit(50)
+		if err := fillKeyQuery(c, q, &res); err != nil {
+			log.Errorf(c, "Error fetching tune results: %v", err)
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		r.Orig = (*json.RawMessage)(&r.Data)
-		r.UUID = ""
+
+		for _, r := range res {
+			if err := r.uncompress(); err != nil {
+				log.Errorf(c, "Error uncompressing tune details: %v", err)
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			r.Orig = (*json.RawMessage)(&r.Data)
+			r.UUID = ""
+		}
+
+		memcache.JSON.Set(c, &memcache.Item{
+			Key:        tunaKey,
+			Object:     res,
+			Expiration: time.Hour * 24,
+		})
 	}
 
 	mustEncode(c, w, res)

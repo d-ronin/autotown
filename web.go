@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os/user"
@@ -20,13 +21,10 @@ import (
 	"strings"
 	"time"
 
-	"camlistore.org/pkg/syncutil"
-
 	"golang.org/x/net/context"
 
 	"github.com/dustin/go-jsonpointer"
-
-	"math"
+	"github.com/simonz05/util/syncutil"
 
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
@@ -143,6 +141,14 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	grp := syncutil.Group{}
+	grp.Go(func() error {
+		return notify(c, "New Tune",
+			fmt.Sprintf("Someone posted a new tune from a %v with %.2f mS tau",
+				fields.Vehicle.Firmware.Board, 1000.0*fields.Identification.Tau),
+			"https://dronin-autotown.appspot.com/at/")
+	})
+
 	k, err := datastore.Put(c, datastore.NewIncompleteKey(c, "TuneResults", nil), &t)
 	if err != nil {
 		log.Infof(c, "Error performing initial put (queueing): %v", err)
@@ -150,8 +156,13 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 			Path:    "/asyncStoreTune",
 			Payload: buf.Bytes(),
 		}
-		if _, err := taskqueue.Add(c, task, "asyncstore"); err != nil {
-			log.Infof(c, "Error queueing storage of tune results: %v", err)
+		grp.Go(func() error {
+			_, err := taskqueue.Add(c, task, "asyncstore")
+			return err
+		})
+
+		if err := grp.Err(); err != nil {
+			log.Infof(c, "Error async processing tune: %v", err)
 			http.Error(w, err.Error(), 500)
 			return
 		}
@@ -159,16 +170,12 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	memcache.DeleteMulti(c, []string{recentTunesKey, relatedKey(k)})
-
+	t.Key = k
 	tuneURL := "https://dronin-autotown.appspot.com/at/tune/" + k.Encode()
+	grp.Go(func() error { return cacheTune(c, &t) })
 
-	err = notify(c, "New Tune",
-		fmt.Sprintf("Someone posted a new tune from a %v with %.2f mS tau",
-			fields.Vehicle.Firmware.Board, 1000.0*fields.Identification.Tau),
-		tuneURL)
-	if err != nil {
-		log.Infof(c, "Error notifying of tune: %v", err)
+	if err := grp.Err(); err != nil {
+		log.Infof(c, "Error caching and/or notifying of tune: %v", err)
 	}
 
 	w.Header().Set("Location", tuneURL)
@@ -192,7 +199,10 @@ func handleAsyncStoreTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	memcache.DeleteMulti(c, []string{recentTunesKey, relatedKey(k)})
+	t.Key = k
+	if err := cacheTune(c, &t); err != nil {
+		log.Warningf(c, "Error updating tune cache: %v", err)
+	}
 
 	w.WriteHeader(201)
 }
@@ -593,6 +603,31 @@ func getTune(c context.Context, k *datastore.Key) (*TuneResults, error) {
 	}
 
 	return tune, nil
+}
+
+func cacheTune(c context.Context, t *TuneResults) error {
+	tunaKey := "/tune/" + t.Key.String()
+	if err := t.uncompress(); err != nil {
+		return err
+	}
+	t.Orig = (*json.RawMessage)(&t.Data)
+	t.Experimental = computeIceeTune(c, t.Data)
+
+	grp := syncutil.Group{}
+
+	grp.Go(func() error {
+		return memcache.JSON.Set(c, &memcache.Item{
+			Key:    tunaKey,
+			Object: t,
+		})
+	})
+
+	grp.Go(func() error {
+		memcache.DeleteMulti(c, []string{recentTunesKey, relatedKey(t.Key)})
+		return nil
+	})
+
+	return grp.Err()
 }
 
 func handleTune(w http.ResponseWriter, r *http.Request) {

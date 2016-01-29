@@ -559,7 +559,7 @@ func computeIceeTune(c context.Context, data []byte) map[string]float64 {
 	okp := tune.Tuning.Computed.Gains.Outer.KP
 	tau := tune.Identification.Tau
 
-	if tau < 5 {
+	if tau < .005 {
 		log.Infof(c, "Ignoring excessively low tau: %v", tune)
 		return nil
 	}

@@ -302,9 +302,6 @@ func exportTunesJSON(c context.Context, w http.ResponseWriter, r *http.Request) 
 	q := datastore.NewQuery("TuneResults").
 		Order("timestamp")
 
-	ids := map[string]string{}
-	nextId := 1
-
 	w.Header().Set("Content-Type", "application/json")
 	j := json.NewEncoder(w)
 
@@ -330,16 +327,9 @@ func exportTunesJSON(c context.Context, w http.ResponseWriter, r *http.Request) 
 			continue
 		}
 
-		id, ok := ids[x.UUID]
-		if !ok {
-			id = strconv.Itoa(nextId)
-			ids[x.UUID] = id
-			nextId++
-		}
-
 		err = j.Encode(TuneResult{
 			Timestamp: x.Timestamp,
-			ID:        id,
+			ID:        x.UUID,
 			Addr:      x.Addr,
 			Country:   x.Country,
 			Region:    x.Region,

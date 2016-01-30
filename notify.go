@@ -23,6 +23,6 @@ var notify = delay.Func("notify", func(c context.Context, title, msg, url string
 		Application: "autotown",
 		Event:       title,
 		Description: msg,
-		URL:         "http://dronin-autotown.appspot.com/static/stats.html",
+		URL:         url,
 	})
 })

@@ -976,10 +976,17 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gitl, err := gitLabels(c)
-	if err != nil {
-		log.Errorf(c, "Error getting stuff from github, going without: %v", err)
-	}
+	var gitl []githubRef
+
+	g := syncutil.Group{}
+	g.Go(func() error {
+		var err error
+		gitl, err = gitLabels(c)
+		if err != nil {
+			log.Errorf(c, "Error getting stuff from github, going without: %v", err)
+		}
+		return nil
+	})
 
 	results := struct {
 		OSBoard      map[string]map[string]int `json:"os_board"`
@@ -1031,6 +1038,7 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		results.BoardRev[x.Name] = br
 
 		ref := "Unknown"
+		g.Wait() // Make sure we have git labels
 		if lbls := gitDescribe(x.GitHash, gitl); lbls != nil {
 			ref = lbls[0].Label
 		}

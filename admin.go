@@ -303,6 +303,13 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 		return err
 	})
 
+	if len(seenBoards) > 0 {
+		g.Go(func() error {
+			memcache.Delete(c, resultsStatsKey)
+			return nil
+		})
+	}
+
 	if newBoard != "" {
 		g.Go(func() error {
 			if err := notify.Call(c, "New Device", newBoard, statsURL); err != nil {
@@ -317,8 +324,6 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-
-	memcache.Delete(c, resultsStatsKey)
 
 	w.WriteHeader(204)
 

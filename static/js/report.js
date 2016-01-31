@@ -202,7 +202,7 @@ var processorTypes = {
     "Sparky2":'F4',
     "flyingf3":'F3',
     "quanton":'F4',
-    "colibri": 'F3',
+    "colibri": 'F4',
 };
 
 function drawProcessorGraph(data) {

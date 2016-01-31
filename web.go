@@ -557,6 +557,11 @@ func computeIceeTune(c context.Context, data []byte) map[string]float64 {
 	pbeta := tune.RawSettings.SystemIdent.Fields.Beta[1]
 	ybeta := tune.RawSettings.SystemIdent.Fields.Beta[2]
 
+	if ybeta < 6.3 {
+		log.Infof(c, "Error computing iceetune, yaw beta too low: %#v", ybeta)
+		return nil
+	}
+
 	rv := map[string]float64{
 		"yp":  kp * math.Pow(math.E, (pbeta-ybeta)*0.6),
 		"yi":  ki * math.Pow(math.E, (pbeta-ybeta)*0.6) * 0.8,

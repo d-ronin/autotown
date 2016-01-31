@@ -27,3 +27,8 @@ div#relatedTunes tr.current {
 .tune-tau {
     text-align: right;
 }
+
+.bogus {
+    color: red;
+    font-weight: bold;
+}

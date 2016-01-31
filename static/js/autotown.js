@@ -47,9 +47,14 @@ autotown = angular.module('autotown', ['ngRoute']).
                     });
             }]);
 
+function isBogusTau(t) {
+    return t < 0.0075 || t > .3;
+}
+
 autotown.controller('IndexCtrl', ['$scope', '$http',
                                   function($scope, $http) {
                                       $http.get("/api/recentTunes").success(function(data) {
+                                          $scope.isBogusTau = isBogusTau;
                                           $scope.recentTunes = data;
                                           $scope.olderFun = function(d) {
                                               if (!d.older) {
@@ -71,6 +76,7 @@ autotown.controller('IndexCtrl', ['$scope', '$http',
 
 autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                  function($scope, $http, $routeParams) {
+                                     $scope.isBogusTau = isBogusTau;
                                      $scope.rawLink = "/api/tune?tune=" +
                                          encodeURIComponent($routeParams.tuna);
                                      $http.get($scope.rawLink).success(function(data) {

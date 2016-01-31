@@ -17,7 +17,7 @@
       <td>{{t.Board}}</td>
       <td class="tune-tau" title="{{olderFun(t)}}">
         <span ng-show="t.older">* </span>
-        {{t.Tau|tomillis}} ms
+        <span ng-class="{bogus: isBogusTau(t.Tau)}">{{t.Tau|tomillis}} ms</span>
       </td>
       <td><a href="https://www.google.com/maps/@{{t.Lat}},{{t.Lon}},12z">{{t.City}},
           {{t.Region}} {{t.Country}}</a></td>

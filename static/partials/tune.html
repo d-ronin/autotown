@@ -55,16 +55,6 @@
         ng-class="{'bogus': isBogusTau(tune.Orig.identification.tau)}">
       {{tune.Orig.identification.tau|tomillis}} ms</td>
   </tr>
-  <tr ng-show="tune.Orig.rawSettings.SystemIdent.fields.Beta">
-    <th>Betas</th>
-    <td>
-      R: {{tune.Orig.rawSettings.SystemIdent.fields.Beta[0] | number}},
-      P: {{tune.Orig.rawSettings.SystemIdent.fields.Beta[1] | number}},
-      Y:<span ng-class="{'bogus': tune.Orig.rawSettings.SystemIdent.fields.Beta[2] < 6.3}">
-        {{tune.Orig.rawSettings.SystemIdent.fields.Beta[2] | number}}
-      </span>
-    </td>
-  </tr>
   <tr><th>Predicts</th><td>{{tune.Orig.rawSettings.SystemIdent.fields.NumAfPredicts}}</td></tr>
   <tr><th>Spilled</th><td>{{tune.Orig.rawSettings.SystemIdent.fields.NumSpilledPts}}</td></tr>
 </table>
@@ -86,7 +76,9 @@
     </tr>
     <tr><th>Yaw</th>
       <td>{{tune.Orig.identification.yaw.bias}}</td>
-      <td>{{tune.Orig.identification.yaw.gain}}</td>
+      <td ng-class="{'bogus': tune.Orig.identification.yaw.gain < 6.3}">
+        {{tune.Orig.identification.yaw.gain}}
+      </td>
       <td>{{tune.Orig.identification.yaw.noise}}</td>
     </tr>
   </tbody>

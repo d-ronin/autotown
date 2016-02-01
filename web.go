@@ -24,6 +24,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/dustin/go-jsonpointer"
+	"github.com/rs/cors"
 	"github.com/simonz05/util/syncutil"
 
 	"google.golang.org/appengine"
@@ -37,7 +38,13 @@ import (
 
 const statsURL = "http://dronin-autotown.appspot.com/static/stats.html"
 
-var templates *template.Template
+var (
+	templates   *template.Template
+	corsHandler = cors.New(cors.Options{
+		AllowedOrigins: []string{"localhost", "dronin.org"},
+		AllowedMethods: []string{"GET"},
+	})
+)
 
 func init() {
 	var err error
@@ -56,11 +63,11 @@ func init() {
 	http.HandleFunc("/api/currentuser", handleCurrentUser)
 	http.HandleFunc("/api/usageStats", handleUsageStatsSummary)
 	http.HandleFunc("/api/usageDetails", handleUsageStatsDetails)
-	http.HandleFunc("/api/recentTunes", handleRecentTunes)
-	http.HandleFunc("/api/relatedTunes", handleRelatedTunes)
+	http.Handle("/api/recentTunes", corsHandleFunc(handleRecentTunes))
+	http.Handle("/api/relatedTunes", corsHandleFunc(handleRelatedTunes))
 	http.HandleFunc("/api/recentUsage", handleRecentUsage)
 	http.HandleFunc("/api/gitLabels", handleGitLabels)
-	http.HandleFunc("/api/tune", handleTune)
+	http.Handle("/api/tune", corsHandleFunc(handleTune))
 	http.HandleFunc("/api/recentCrashes", handleRecentCrashes)
 	http.HandleFunc("/at/", handleAutotown)
 
@@ -69,6 +76,10 @@ func init() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/at/", http.StatusFound)
 	})
+}
+
+func corsHandleFunc(f func(w http.ResponseWriter, r *http.Request)) http.Handler {
+	return corsHandler.Handler(http.HandlerFunc(f))
 }
 
 func execTemplate(c context.Context, w io.Writer, name string, obj interface{}) error {

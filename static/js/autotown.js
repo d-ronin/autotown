@@ -53,6 +53,7 @@ function isBogusTau(t) {
 
 autotown.controller('IndexCtrl', ['$scope', '$http',
                                   function($scope, $http) {
+
                                       $http.get("/api/recentTunes").success(function(data) {
                                           $scope.isBogusTau = isBogusTau;
                                           $scope.recentTunes = data;
@@ -63,13 +64,37 @@ autotown.controller('IndexCtrl', ['$scope', '$http',
                                               var rv = [];
                                               for (var i = 0; i < d.older.length; i++) {
                                                   var x = d.older[i];
-                                                  console.log("Doing", x);
                                                   rv.push("" + (x.tau * 1000).toFixed(2) + "@" +
                                                           moment(x.timestamp).fromNow());
 
                                               }
                                               return rv.join(', ');
                                           };
+                                          $scope.olderSparks = function(d) {
+                                              if (!d.older) return "";
+                                              var rv = [];
+                                              for (var i = 0; i < d.older.length; i++) {
+                                                  var x = d.older[i];
+                                                  rv.push((x.tau * 1000).toFixed(2));
+
+                                              }
+                                              rv.reverse();
+                                              return "";
+                                          };
+
+                                          setTimeout(function() {
+                                              for (var i = 0; i < data.length; i++) {
+                                                  var d = data[i];
+                                                  if (!d.older) { continue; }
+                                                  var rv = [];
+                                                  for (var j = 0; j < d.older.length; j++) {
+                                                      var x = d.older[j];
+                                                      rv.push((x.tau * 1000).toFixed(2));
+                                                  }
+                                                  rv.reverse();
+                                                  jQuery('#spark-' + d.Key).sparkline(rv);
+                                              }
+                                          }, 1);
                                       });
                                   }]);
 

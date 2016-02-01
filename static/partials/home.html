@@ -6,7 +6,7 @@
     <tr>
       <th id="rt-timestamp">Timestamp</th>
       <th id="rt-board">Board</th>
-      <th id="rt-tau">Tau</th>
+      <th colspan="2" id="rt-tau">Tau</th>
       <th id="rt-loc">Where</th>
     </tr>
   </thead>
@@ -15,9 +15,11 @@
     <tr ng-repeat="t in recentTunes">
       <td title="{{t.Timestamp}}"><a href="/at/tune/{{t.Key}}">{{t.Timestamp|relDate}}</a></td>
       <td>{{t.Board}}</td>
-      <td class="tune-tau" title="{{olderFun(t)}}">
-        <span ng-show="t.older">* </span>
+      <td class="tune-tau">
         <span ng-class="{bogus: isBogusTau(t.Tau)}">{{t.Tau|tomillis}} ms</span>
+      </td>
+      <td title="{{olderFun(t)}}">
+        <span id="spark-{{t.Key}}"></span>
       </td>
       <td><a href="https://www.google.com/maps/@{{t.Lat}},{{t.Lon}},12z">{{t.City}},
           {{t.Region}} {{t.Country}}</a></td>

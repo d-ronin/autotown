@@ -41,7 +41,9 @@ const statsURL = "http://dronin-autotown.appspot.com/static/stats.html"
 var (
 	templates   *template.Template
 	corsHandler = cors.New(cors.Options{
-		AllowedOrigins: []string{"localhost", "dronin.org"},
+		AllowedOrigins: []string{
+			"http://dronin.org", "https://dronin.org",
+			"http://bl.ocks.org"},
 		AllowedMethods: []string{"GET"},
 	})
 )

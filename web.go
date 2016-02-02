@@ -290,6 +290,8 @@ func exportTunesCSV(c context.Context, w http.ResponseWriter, r *http.Request) {
 		k, err := t.Next(&x)
 		if err == datastore.Done {
 			break
+		} else if err != nil {
+			panic(err)
 		}
 		if err := x.uncompress(); err != nil {
 			log.Infof(c, "Error decompressing: %v", err)
@@ -334,6 +336,8 @@ func exportTunesJSON(c context.Context, w http.ResponseWriter, r *http.Request) 
 		_, err := t.Next(&x)
 		if err == datastore.Done {
 			break
+		} else if err != nil {
+			panic(err)
 		}
 		if err := x.uncompress(); err != nil {
 			log.Infof(c, "Error decompressing: %v", err)
@@ -1029,6 +1033,8 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		_, err := t.Next(&x)
 		if err == datastore.Done {
 			break
+		} else if err != nil {
+			panic(err)
 		}
 
 		results.OSDetail[x.GCSOS]++
@@ -1105,6 +1111,8 @@ func handleUsageStatsDetails(w http.ResponseWriter, r *http.Request) {
 		_, err := t.Next(&x)
 		if err == datastore.Done {
 			break
+		} else if err != nil {
+			panic(err)
 		}
 
 		ref := ""

@@ -98,6 +98,8 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 		_, err := t.Next(&st)
 		if err == datastore.Done {
 			break
+		} else if err != nil {
+			panic(err)
 		}
 
 		err = st.uncompress()
@@ -370,6 +372,8 @@ func handleExportBoards(w http.ResponseWriter, r *http.Request) {
 		_, err := t.Next(&x)
 		if err == datastore.Done {
 			break
+		} else if err != nil {
+			panic(err)
 		}
 
 		ref := ""

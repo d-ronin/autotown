@@ -92,6 +92,7 @@ autotown.controller('IndexCtrl', ['$scope', '$http',
                                                       rv.push((x.tau * 1000).toFixed(2));
                                                   }
                                                   rv.reverse();
+                                                  rv.push((d.Tau * 1000).toFixed(2));
                                                   jQuery('#spark-' + d.Key).sparkline(rv);
                                               }
                                           }, 1);

@@ -59,7 +59,7 @@ func init() {
 	http.HandleFunc("/asyncStoreTune", handleAsyncStoreTune)
 	http.HandleFunc("/storeCrash", handleStoreCrash)
 	http.HandleFunc("/usageStats", handleUsageStats)
-	http.HandleFunc("/asyncUsageStats", handleAsyncUsageStats)
+	http.HandleFunc("/batch/asyncUsageStats", handleAsyncUsageStats)
 	http.HandleFunc("/exportTunes", handleExportTunes)
 
 	http.HandleFunc("/api/currentuser", handleCurrentUser)
@@ -785,24 +785,12 @@ func handleUsageStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	grp := syncutil.Group{}
-	grp.Go(func() error {
-		task := &taskqueue.Task{
-			Path:    "/asyncUsageStats",
-			Payload: g,
-		}
-		_, err := taskqueue.Add(c, task, "asyncusage")
-		return err
-	})
-	grp.Go(func() error {
-		task := &taskqueue.Task{
-			Path:    "/asyncRollup",
-			Payload: g,
-		}
-		_, err := taskqueue.Add(c, task, "asyncUsageRollup")
-		return err
-	})
-	if err := grp.Err(); err != nil {
+	task := &taskqueue.Task{
+		Path:    "/batch/asyncUsageStats",
+		Payload: g,
+	}
+	_, err = taskqueue.Add(c, task, "asyncusage")
+	if err != nil {
 		log.Infof(c, "Error queueing storage of tune results: %v", err)
 		http.Error(w, err.Error(), 500)
 		return
@@ -880,8 +868,13 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	errch := make(chan error, 2)
-	go func() {
+	g := syncutil.Group{}
+
+	g.Go(func() error {
+		return asyncRollup(c, &d)
+	})
+
+	g.Go(func() error {
 		preSize := len(*d.RawData)
 
 		u := UsageStat{
@@ -897,8 +890,7 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 
 		if err := u.compress(); err != nil {
 			log.Errorf(c, "Error compressing: %v", err)
-			errch <- err
-			return
+			return err
 		}
 
 		log.Infof(c, "Compressed usage data from %v to %v", preSize, len(u.Data))
@@ -906,13 +898,12 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 		_, err := datastore.Put(c, datastore.NewIncompleteKey(c, "UsageStat", nil), &u)
 		if err != nil {
 			log.Warningf(c, "Error storing usage data: %v", err)
-			errch <- err
-			return
+			return err
 		}
-		errch <- nil
-	}()
+		return nil
+	})
 
-	go func() {
+	g.Go(func() error {
 		decoded := struct {
 			CurrentOS  string `json:"currentOS"`
 			GCSVersion string `json:"gcs_version"`
@@ -950,16 +941,14 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 		if len(recent) > maxRecent {
 			recent = recent[1:]
 		}
-		errch <- memcache.JSON.Set(c, &memcache.Item{
+		return memcache.JSON.Set(c, &memcache.Item{
 			Key:    usageRollupKey,
 			Object: recent,
 		})
-	}()
+	})
 
-	for i := 0; i < 2; i++ {
-		if err := <-errch; err != nil {
-			log.Warningf(c, "Error with storage stuff: %v", err)
-		}
+	for _, err := range g.Errs() {
+		log.Warningf(c, "Error with storage stuff: %v", err)
 	}
 }
 

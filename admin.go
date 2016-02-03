@@ -2,13 +2,14 @@ package autotown
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/net/context"
 
 	"github.com/simonz05/util/syncutil"
 
@@ -25,7 +26,6 @@ func init() {
 	http.HandleFunc("/admin/rewriteUUIDs", handleRewriteUUIDs)
 	http.HandleFunc("/admin/updateControllers", handleUpdateControllers)
 	http.HandleFunc("/admin/exportBoards", handleExportBoards)
-	http.HandleFunc("/asyncRollup", handleAsyncRollup)
 }
 
 func handleRewriteUUIDs(w http.ResponseWriter, r *http.Request) {
@@ -177,22 +177,7 @@ type usageSeenBoard struct {
 	UavoHash  string
 }
 
-func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
-
-	var d asyncUsageData
-	br, err := gzip.NewReader(r.Body)
-	if err != nil {
-		log.Errorf(c, "Error initializing ungzip: %v", err)
-		http.Error(w, "error ungzipping", 500)
-		return
-	}
-	if err := json.NewDecoder(br).Decode(&d); err != nil {
-		log.Errorf(c, "Error decoding async json data: %v", err)
-		http.Error(w, "error decoding json", 500)
-		return
-	}
-
+func asyncRollup(c context.Context, d *asyncUsageData) error {
 	rec := struct {
 		BoardsSeen             []usageSeenBoard
 		CurrentArch, CurrentOS string
@@ -201,8 +186,7 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 	}{}
 	if err := json.Unmarshal([]byte(*d.RawData), &rec); err != nil {
 		log.Warningf(c, "Couldn't parse %s: %v", *d.RawData, err)
-		http.Error(w, "error ungzipping", 500)
-		return
+		return err
 	}
 
 	seenBoards := map[string]usageSeenBoard{}
@@ -282,9 +266,7 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 			newBoard = v.Name
 		case nil:
 		default:
-			log.Errorf(c, "Error fetching tune: %v", err)
-			http.Error(w, err.Error(), 500)
-			return
+			return err
 		}
 
 		if prev.Oldest.Before(v.Oldest) {
@@ -299,11 +281,13 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	g := syncutil.Group{}
-	g.Go(func() error {
-		log.Infof(c, "Updating %v items", len(keys))
-		_, err = datastore.PutMulti(c, keys, toUpdate)
-		return err
-	})
+	if len(keys) == 0 {
+		g.Go(func() error {
+			log.Infof(c, "Updating %v items", len(keys))
+			_, err := datastore.PutMulti(c, keys, toUpdate)
+			return err
+		})
+	}
 
 	if len(seenBoards) > 0 {
 		g.Go(func() error {
@@ -321,14 +305,7 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	if err := g.Err(); err != nil {
-		log.Errorf(c, "Error updating controller records: %v", err)
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
-	w.WriteHeader(204)
-
+	return g.Err()
 }
 
 func abbrevOS(s string) string {

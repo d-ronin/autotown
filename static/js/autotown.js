@@ -53,9 +53,9 @@ function isBogusTau(t) {
 
 autotown.controller('IndexCtrl', ['$scope', '$http',
                                   function($scope, $http) {
+                                      $scope.isBogusTau = isBogusTau;
 
                                       $http.get("/api/recentTunes").success(function(data) {
-                                          $scope.isBogusTau = isBogusTau;
                                           $scope.recentTunes = data;
                                           $scope.olderFun = function(d) {
                                               if (!d.older) {

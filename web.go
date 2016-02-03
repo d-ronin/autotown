@@ -841,7 +841,6 @@ func handleRecentUsage(w http.ResponseWriter, r *http.Request) {
 		recent = rv
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	mustEncode(c, w, recent)
 }
 

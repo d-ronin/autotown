@@ -19,10 +19,3 @@ queue:
   bucket_size: 25
   retry_parameters:
     task_age_limit: 14d
-
-- name: asyncRollup
-  target: worker
-  rate: 400/s
-  bucket_size: 1
-  retry_parameters:
-    task_age_limit: 14d

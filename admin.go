@@ -2,6 +2,7 @@ package autotown
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -26,6 +27,7 @@ func init() {
 	http.HandleFunc("/admin/rewriteUUIDs", handleRewriteUUIDs)
 	http.HandleFunc("/admin/updateControllers", handleUpdateControllers)
 	http.HandleFunc("/admin/exportBoards", handleExportBoards)
+	http.HandleFunc("/batch/asyncRollup", handleAsyncRollup)
 }
 
 func handleRewriteUUIDs(w http.ResponseWriter, r *http.Request) {
@@ -88,11 +90,12 @@ func handleRewriteUUIDs(w http.ResponseWriter, r *http.Request) {
 func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
-	q := datastore.NewQuery("UsageStat")
+	q := datastore.NewQuery("UsageStat").Order("-timestamp")
 	var tasks []*taskqueue.Task
 
 	total := 0
 
+	grp := syncutil.Group{}
 	for t := q.Run(c); ; {
 		var st UsageStat
 		_, err := t.Next(&st)
@@ -133,17 +136,16 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 		}
 
 		tasks = append(tasks, &taskqueue.Task{
-			Path:    "/asyncRollup",
+			Path:    "/batch/asyncRollup",
 			Payload: g,
 		})
 
 		if len(tasks) == 100 {
-			_, err := taskqueue.AddMulti(c, tasks, "asyncUsageRollup")
-			if err != nil {
-				log.Errorf(c, "Error queueing stuff: %v", err)
-				http.Error(w, "error queueing", 500)
-				return
-			}
+			todo := tasks
+			grp.Go(func() error {
+				_, err := taskqueue.AddMulti(c, todo, "asyncRollup")
+				return err
+			})
 			tasks = nil
 			log.Infof(c, "Added a batch of 100")
 		}
@@ -153,13 +155,17 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if tasks != nil {
-		_, err := taskqueue.AddMulti(c, tasks, "asyncUsageRollup")
-		if err != nil {
-			log.Errorf(c, "Error queueing stuff: %v", err)
-			http.Error(w, "error queueing", 500)
-			return
-		}
+		grp.Go(func() error {
+			_, err := taskqueue.AddMulti(c, tasks, "asyncRollup")
+			return err
+		})
 		log.Infof(c, "Added a batch of %v", len(tasks))
+	}
+
+	if err := grp.Err(); err != nil {
+		log.Errorf(c, "Error queueing stuff: %v", err)
+		http.Error(w, "error queueing", 500)
+		return
 	}
 
 	log.Infof(c, "Queued %v entries for batch processing", total)
@@ -175,6 +181,31 @@ type usageSeenBoard struct {
 	GitTag    string
 	Name      string
 	UavoHash  string
+}
+
+func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	var d asyncUsageData
+	br, err := gzip.NewReader(r.Body)
+	if err != nil {
+		log.Errorf(c, "Error initializing ungzip: %v", err)
+		http.Error(w, "error ungzipping", 500)
+		return
+	}
+	if err := json.NewDecoder(br).Decode(&d); err != nil {
+		log.Errorf(c, "Error decoding async json data: %v", err)
+		http.Error(w, "error decoding json", 500)
+		return
+	}
+
+	if err := asyncRollup(c, &d); err != nil {
+		log.Errorf(c, "Error doing async rollup: %v", err)
+		http.Error(w, "error doing async rollup", 500)
+		return
+	}
+
+	w.WriteHeader(204)
 }
 
 func asyncRollup(c context.Context, d *asyncUsageData) error {

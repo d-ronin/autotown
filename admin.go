@@ -281,7 +281,7 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 	}
 
 	g := syncutil.Group{}
-	if len(keys) == 0 {
+	if len(keys) > 0 {
 		g.Go(func() error {
 			log.Infof(c, "Updating %v items", len(keys))
 			_, err := datastore.PutMulti(c, keys, toUpdate)

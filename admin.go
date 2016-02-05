@@ -316,14 +316,8 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 		g.Go(func() error {
 			log.Infof(c, "Updating %v items", len(keys))
 			_, err := datastore.PutMulti(c, keys, toUpdate)
-			return err
-		})
-	}
-
-	if len(seenBoards) > 0 {
-		g.Go(func() error {
 			memcache.Delete(c, resultsStatsKey)
-			return nil
+			return err
 		})
 	}
 

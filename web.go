@@ -145,7 +145,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error compressing raw tune data", 500)
 		return
 	}
-	log.Infof(c, "Compressed stat data from %v -> %v", oldSize, len(t.Data))
+	log.Debugf(c, "Compressed stat data from %v -> %v", oldSize, len(t.Data))
 
 	buf := bytes.Buffer{}
 	if err := gob.NewEncoder(&buf).Encode(&t); err != nil {
@@ -785,8 +785,12 @@ func handleUsageStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// https://groups.google.com/forum/?fromgroups#!topic/google-appengine/ik5fMyvO4PQ
+	tid := traceId(r)
+	log.Debugf(c, "setting traceid header to: %q", tid)
 	task := &taskqueue.Task{
 		Path:    "/batch/asyncUsageStats",
+		Header:  http.Header{"X-Cloud-Trace-Context": []string{tid + "/0;o=1"}},
 		Payload: g,
 	}
 	_, err = taskqueue.Add(c, task, "asyncusage")
@@ -844,6 +848,12 @@ func handleRecentUsage(w http.ResponseWriter, r *http.Request) {
 	mustEncode(c, w, recent)
 }
 
+func traceId(r *http.Request) string {
+	h := sha1.New()
+	fmt.Fprintf(h, "%s %s %s", *r.URL, r.RemoteAddr, time.Now())
+	return hex.EncodeToString(h.Sum(nil))[:32]
+}
+
 func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
@@ -892,7 +902,7 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
-		log.Infof(c, "Compressed usage data from %v to %v", preSize, len(u.Data))
+		log.Debugf(c, "Compressed usage data from %v to %v", preSize, len(u.Data))
 
 		_, err := datastore.Put(c, datastore.NewIncompleteKey(c, "UsageStat", nil), &u)
 		if err != nil {

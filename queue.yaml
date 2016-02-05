@@ -7,14 +7,32 @@ queue:
     task_age_limit: 1d
 
 - name: asyncstore
-  target: worker
   rate: 400/s
   bucket_size: 25
   retry_parameters:
     task_age_limit: 14d
 
 - name: asyncusage
+  rate: 400/s
+  bucket_size: 25
+  retry_parameters:
+    task_age_limit: 14d
+
+- name: map
   target: worker
+  rate: 100/s
+  bucket_size: 25
+  retry_parameters:
+    task_age_limit: 14d
+
+- name: map2
+  target: worker
+  rate: 100/s
+  bucket_size: 25
+  retry_parameters:
+    task_age_limit: 14d
+
+- name: asyncRollupBE
   rate: 400/s
   bucket_size: 25
   retry_parameters:

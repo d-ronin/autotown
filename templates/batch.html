@@ -1,0 +1,21 @@
+<html>
+  <head>
+    <title>Submit Batch Job</title>
+  </head>
+
+  <body>
+    <h1>batch process</h1>
+    <div id="message">{{.Message}}</div>
+    <form method="POST" action="/admin/submitMap">
+      <select name="kind">
+        {{ range .Kinds }}
+        <option value="{{.}}">{{.}}</option>
+        {{ end }}
+      </select>
+      <br/>
+      <input type="text" name="next" value="/batch/logkeys" />
+      <br/>
+      <input type="submit" value="Go" />
+    </form>
+  </body>
+</html>

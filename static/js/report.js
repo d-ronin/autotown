@@ -198,6 +198,7 @@ var processorTypes = {
     "Naze":'F1',
     "Naze32Pro":'F3',
     "RevoMini":'F4',
+    "Revolution":'F4',
     "Sparky":'F3',
     "Sparky2":'F4',
     "flyingf3":'F3',

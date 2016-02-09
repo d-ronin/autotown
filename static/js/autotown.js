@@ -1,3 +1,4 @@
+
 autotown = angular.module('autotown', ['ngRoute']).
     filter('relDate', function() {
         return function(dstr) {
@@ -107,6 +108,21 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                          encodeURIComponent($routeParams.tuna);
                                      $http.get($scope.rawLink).success(function(data) {
                                          $scope.tune = data;
+
+                                         $scope.hw = {};
+                                         var board = data.Orig.rawSettings["Hw" + data.Board].fields;
+                                         for (var k in board) {
+                                             if (k.match(/MPU.*Rate/)) {
+                                                 $scope.hw.mpurate = board[k];
+                                             } else if (k.match(/MPU.*Accel.*LPF/)) {
+                                                 $scope.hw.accellpf = board[k];
+                                             } else if (k.match(/MPU.*Gyro.*LPF/)) {
+                                                 $scope.hw.gyrolpf = board[k];
+                                             } else if (k.match(/MPU.*LPF/)) {
+                                                 $scope.hw.accellpf = board[k];
+                                                 $scope.hw.gyrolpf = board[k];
+                                             }
+                                         }
                                      });
 
                                      var relatedLink = "/api/relatedTunes?tune=" +

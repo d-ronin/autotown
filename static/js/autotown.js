@@ -123,6 +123,12 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                                  $scope.hw.gyrolpf = board[k];
                                              }
                                          }
+
+                                         var as = data.Orig.rawSettings.ActuatorSettings.fields;
+                                         $scope.bterm = as.MotorInputOutputCurveFit;
+                                         if (typeof $scope.bterm === 'object') {
+                                             $scope.bterm = $scope.bterm[1];
+                                         }
                                      });
 
                                      var relatedLink = "/api/relatedTunes?tune=" +

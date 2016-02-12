@@ -39,7 +39,8 @@ import (
 const statsURL = "http://dronin-autotown.appspot.com/static/stats.html"
 
 var (
-	templates   *template.Template
+	templates = template.Must(template.New("").ParseGlob("templates/*"))
+
 	corsHandler = cors.New(cors.Options{
 		AllowedOrigins: []string{"http://localhost:8080",
 			"http://dronin.org", "https://dronin.org",
@@ -49,12 +50,6 @@ var (
 )
 
 func init() {
-	var err error
-	templates, err = template.New("").ParseGlob("templates/*")
-	if err != nil {
-		panic("Couldn't parse templates: " + err.Error())
-	}
-
 	http.HandleFunc("/storeTune", handleStoreTune)
 	http.HandleFunc("/asyncStoreTune", handleAsyncStoreTune)
 	http.HandleFunc("/storeCrash", handleStoreCrash)

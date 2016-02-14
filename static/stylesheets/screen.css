@@ -10,6 +10,11 @@ div.experimental {
     border: solid 1px red;
 }
 
+td.experimental, span.experimental {
+    background: orange;
+    border: solid 1px red;
+}
+
 div#relatedTunes {
     width: 220px;
     float: right;

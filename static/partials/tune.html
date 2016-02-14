@@ -1,6 +1,8 @@
 <h1>dRonin Autotown</h1>
 
+
 <div id="relatedTunes" ng-show="related">
+  <div><a href="/at/">[All Tunes]</a></div>
   <h2 title="Other tunes performed on this exact flight controller.">Also on this Board</h2>
   <table>
     <thead>
@@ -53,7 +55,7 @@
   <tr><th>MPU Rate</th><td>{{hw.mpurate}}</td></tr>
   <tr><th>Gyro LPF</th><td>{{hw.gyrolpf}}</td></tr>
   <tr><th>Accel LPF</th><td>{{hw.accellpf}}</td></tr>
-  <tr ng-show="bterm"><th>In/Out Curve Fit</th><td>{{bterm.toFixed(2)}}</td></th>
+  <tr ng-show="bterm"><th>In/Out Curve Fit</th><td>{{bterm | number}}</td></th>
 </table>
 
 <h3>Identification</h3>
@@ -106,47 +108,61 @@
 
 <h4>Gains</h4>
 
+<p>Inner and outer calculated loops as shown in the advanced
+  stabilization tab.
+  <span ng-show="tune.experimental"><span class="experimental">Experimental</span>
+    yaw values have been computed.</span>
+</p>
+
+<h5>Inner Loop</h5>
+
 <table>
   <thead>
-    <tr><td></td><th>kP</th><th>kI</th><th>kD</th></tr>
+    <tr><td></td><th>Roll</th><th>Pitch</th><th>Yaw</th></tr>
   </thead>
   <tbody>
     <tr>
-      <th>Outer</th>
-      <td>{{tune.Orig.tuning.computed.gains.outer.kp}}</td><td></td><td></td>
+      <th>Proportional</th>
+      <td>{{tune.Orig.tuning.computed.gains.roll.kp | number:6}}</td>
+      <td>{{tune.Orig.tuning.computed.gains.pitch.kp | number:6}}</td>
+      <td ng-class="{experimental: tune.experimental}">{{tune.experimental.yp | number:6}}</td>
     </tr>
     <tr>
-      <th>Roll</th>
-      <td>{{tune.Orig.tuning.computed.gains.roll.kp}}</td>
-      <td>{{tune.Orig.tuning.computed.gains.roll.ki}}</td>
-      <td>{{tune.Orig.tuning.computed.gains.roll.kd}}</td>
+      <th>Integral</th>
+      <td>{{tune.Orig.tuning.computed.gains.roll.ki | number:6}}</td>
+      <td>{{tune.Orig.tuning.computed.gains.pitch.ki | number:6}}</td>
+      <td ng-class="{experimental: tune.experimental}">{{tune.experimental.yi | number:6}}</td>
     </tr>
     <tr>
-      <th>Pitch</th>
-      <td>{{tune.Orig.tuning.computed.gains.pitch.kp}}</td>
-      <td>{{tune.Orig.tuning.computed.gains.pitch.ki}}</td>
-      <td>{{tune.Orig.tuning.computed.gains.pitch.kd}}</td>
+      <th>Derivative</th>
+      <td>{{tune.Orig.tuning.computed.gains.roll.kd | number:6}}</td>
+      <td>{{tune.Orig.tuning.computed.gains.pitch.kd | number:6}}</td>
+      <td ng-class="{experimental: tune.experimental}">{{tune.experimental.yd | number:6}}</td>
     </tr>
   </tbody>
 </table>
 
-<div class="experimental" ng-show="tune.experimental">
-  <h4>Experimental Gain Computation</h4>
-  <table>
+<h5>Outer Loop</h5>
+
+<table>
+  <thead>
+    <tr><td></td><th>Roll</th><th>Pitch</th><th>Yaw</th></tr>
+  </thead>
+  <tbody>
     <tr>
-      <th>Yaw P</th><td>{{tune.experimental.yp}}</td>
+      <td>Proportional</td>
+      <td>{{tune.Orig.tuning.computed.gains.outer.kp | number:6}}</td>
+      <td>{{tune.Orig.tuning.computed.gains.outer.kp| number:6}}</td>
+      <td>N/A</td>
     </tr>
     <tr>
-      <th>Yaw I</th><td>{{tune.experimental.yi}}</td>
+      <td>Integral</td>
+      <td ng-class="{experimental: tune.experimental}">{{tune.experimental.oki | number:6}}</td>
+      <td ng-class="{experimental: tune.experimental}">{{tune.experimental.oki | number:6}}</td>
+      <td>N/A</td>
     </tr>
-    <tr>
-      <th>Yaw D</th><td>{{tune.experimental.yd}}</td>
-    </tr>
-    <tr>
-      <th>Outer kI</th><td>{{tune.experimental.oki}}</td>
-    </tr>
-  </table>
-</div>
+  </tbody>
+</table>
 
 <hr/>
 <a href="{{rawLink}}">Raw Data</a>

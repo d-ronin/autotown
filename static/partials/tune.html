@@ -110,8 +110,15 @@
 
 <p>Inner and outer calculated loops as shown in the advanced
   stabilization tab.
-  <span ng-show="tune.experimental"><span class="experimental">Experimental</span>
-    yaw values have been computed.</span>
+  <span ng-show="tune.experimental">
+    <span class="experimental">Experimental</span>
+    yaw values have been computed.
+  </span>
+  <span ng-hide="tune.experimental">
+    Experimental yaw values were not computed due to suspicious
+    measurements (probably yaw beta too low, look for bold red stuff
+    on the screen).
+  </span>
 </p>
 
 <h5>Inner Loop</h5>

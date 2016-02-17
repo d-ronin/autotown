@@ -290,7 +290,7 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 		err := datastore.Get(c, key, prev)
 		switch err {
 		case datastore.ErrNoSuchEntity:
-			newBoard = v.Name
+			newBoard = canonicalBoard(v.Name)
 		case nil:
 		default:
 			return err

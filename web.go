@@ -153,7 +153,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 	grp.Go(func() error {
 		return notify.Call(c, "New Tune",
 			fmt.Sprintf("Someone posted a new tune from a %v with %.2f mS tau",
-				fields.Vehicle.Firmware.Board, 1000.0*fields.Identification.Tau),
+				canonicalBoard(fields.Vehicle.Firmware.Board), 1000.0*fields.Identification.Tau),
 			"https://dronin-autotown.appspot.com/at/")
 	})
 

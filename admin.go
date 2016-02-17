@@ -231,9 +231,7 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 			uuid = fmt.Sprintf("%x", sha256.Sum256([]byte(b.CPU)))
 		}
 
-		if b.Name == "CopterControl" {
-			b.Name = "CC3D"
-		}
+		b.Name = canonicalBoard(b.Name)
 		seenBoards[uuid] = b
 	}
 
@@ -248,9 +246,7 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 			uuid = fmt.Sprintf("%x", sha256.Sum256([]byte(b.CPU)))
 		}
 
-		if b.Name == "CopterControl" {
-			b.Name = "CC3D"
-		}
+		b.Name = canonicalBoard(b.Name)
 
 		fc := items[uuid]
 		if d.Timestamp.After(fc.Timestamp) {
@@ -344,6 +340,17 @@ func abbrevOS(s string) string {
 	}
 }
 
+func canonicalBoard(b string) string {
+	switch b {
+	default:
+		return b
+	case "CopterControl":
+		return "CC3D"
+	case "Revolution", "RevoMini":
+		return "Revo"
+	}
+}
+
 func handleExportBoards(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
@@ -383,7 +390,7 @@ func handleExportBoards(w http.ResponseWriter, r *http.Request) {
 		cw.Write(append([]string{
 			x.Timestamp.Format(time.RFC3339), x.Oldest.Format(time.RFC3339),
 			fmt.Sprint(x.Count),
-			x.UUID, x.Name, fmt.Sprint(x.HardwareRev), x.GitHash, x.GitTag, ref, x.UAVOHash,
+			x.UUID, canonicalBoard(x.Name), fmt.Sprint(x.HardwareRev), x.GitHash, x.GitTag, ref, x.UAVOHash,
 			x.GCSOS, abbrevOS(x.GCSOS), x.GCSArch, x.GCSVersion,
 			x.Country, x.Region, x.City, fmt.Sprint(x.Lat), fmt.Sprint(x.Lon)},
 		))

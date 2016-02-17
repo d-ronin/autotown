@@ -508,6 +508,7 @@ func handleRecentTunes(w http.ResponseWriter, r *http.Request) {
 	rv := []*TuneResults{}
 	seen := map[string]*TuneResults{}
 	for _, t := range res {
+		t.Board = canonicalBoard(t.Board)
 		tune, ok := seen[t.UUID]
 		if ok {
 			tune.Older = append(tune.Older, timestampedTau{t.Tau, t.Timestamp, t.Key})
@@ -924,10 +925,10 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 			}
 			m := map[string]bool{}
 			for _, b := range decoded.Boards {
-				m[b.Name] = true
+				m[canonicalBoard(b.Name)] = true
 			}
 			for b := range m {
-				boards = append(boards, b)
+				boards = append(boards, canonicalBoard(b))
 			}
 		}
 		recent = append(recent, recentUsage{
@@ -1030,29 +1031,31 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 
+		bn := canonicalBoard(x.Name)
+
 		results.OSDetail[x.GCSOS]++
-		results.Board[x.Name]++
+		results.Board[bn]++
 
 		cb, ok := results.CountryBoard[x.Country]
 		if !ok {
 			cb = map[string]int{}
 		}
-		cb[x.Name]++
+		cb[bn]++
 		results.CountryBoard[x.Country] = cb
 
 		ob, ok := results.OSBoard[abbrevOS(x.GCSOS)]
 		if !ok {
 			ob = map[string]int{}
 		}
-		ob[x.Name]++
+		ob[bn]++
 		results.OSBoard[abbrevOS(x.GCSOS)] = ob
 
-		br, ok := results.BoardRev[x.Name]
+		br, ok := results.BoardRev[bn]
 		if !ok {
 			br = map[string]int{}
 		}
 		br[fmt.Sprint(x.HardwareRev)]++
-		results.BoardRev[x.Name] = br
+		results.BoardRev[bn] = br
 
 		ref := "Unknown"
 		g.Wait() // Make sure we have git labels
@@ -1064,7 +1067,7 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			vb = map[string]int{}
 		}
-		vb[x.Name]++
+		vb[bn]++
 		results.VersionBoard[ref] = vb
 	}
 
@@ -1116,7 +1119,7 @@ func handleUsageStatsDetails(w http.ResponseWriter, r *http.Request) {
 		cw.Write(append([]string{
 			x.Timestamp.Format(time.RFC3339), x.Oldest.Format(time.RFC3339),
 			fmt.Sprint(x.Count),
-			x.Name, fmt.Sprint(x.HardwareRev), x.GitHash, x.GitTag, ref,
+			canonicalBoard(x.Name), fmt.Sprint(x.HardwareRev), x.GitHash, x.GitTag, ref,
 			x.GCSOS, abbrevOS(x.GCSOS), x.GCSVersion,
 			x.Country, x.Region, x.City, fmt.Sprint(x.Lat), fmt.Sprint(x.Lon)},
 		))

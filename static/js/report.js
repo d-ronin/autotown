@@ -44,6 +44,7 @@ function drawCountryGraph(data) {
             return {key: e.key, value: d3.sum(d3.values(e.value))};
         });
         values.sort(function (a, b) {return d3.descending(a.value, b.value); });
+        values.splice(20);
 
         d3.select('#countries svg')
             .datum([{'key': 'Countries', values: values}])

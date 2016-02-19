@@ -66,6 +66,10 @@
         ng-class="{'bogus': isBogusTau(tune.Orig.identification.tau)}">
       {{tune.Orig.identification.tau|tomillis}} ms</td>
   </tr>
+  <tr ng-show="tune.Orig.rawSettings.SystemIdent.fields.HoverThrottle">
+    <th>Hover</th>
+    <td>{{tune.Orig.rawSettings.SystemIdent.fields.HoverThrottle * 100 | number:0}}%</td>
+  </tr>
   <tr><th>Predicts</th><td>{{tune.Orig.rawSettings.SystemIdent.fields.NumAfPredicts}}</td></tr>
   <tr><th>Spilled</th><td>{{tune.Orig.rawSettings.SystemIdent.fields.NumSpilledPts}}</td></tr>
 </table>

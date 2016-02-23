@@ -10,7 +10,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/dustin/httputil"
-	"github.com/simonz05/util/syncutil"
+	"go4.org/syncutil"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/memcache"

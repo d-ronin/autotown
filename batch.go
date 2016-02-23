@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"camlistore.org/pkg/syncutil"
+	"go4.org/syncutil"
 
 	"golang.org/x/net/context"
 

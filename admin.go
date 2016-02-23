@@ -12,7 +12,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/simonz05/util/syncutil"
+	"go4.org/syncutil"
 
 	"crypto/sha256"
 

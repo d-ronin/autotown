@@ -25,7 +25,7 @@ import (
 
 	"github.com/dustin/go-jsonpointer"
 	"github.com/rs/cors"
-	"github.com/simonz05/util/syncutil"
+	"go4.org/syncutil"
 
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"

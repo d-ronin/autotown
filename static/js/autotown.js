@@ -112,13 +112,13 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                          $scope.hw = {};
                                          var board = data.Orig.rawSettings["Hw" + data.Board].fields;
                                          for (var k in board) {
-                                             if (k.match(/MPU.*Rate/)) {
+                                             if (k.match(/.*Rate/)) {
                                                  $scope.hw.mpurate = board[k];
-                                             } else if (k.match(/MPU.*Accel.*LPF/)) {
+                                             } else if (k.match(/.*Accel.*LPF/)) {
                                                  $scope.hw.accellpf = board[k];
-                                             } else if (k.match(/MPU.*Gyro.*LPF/)) {
+                                             } else if (k.match(/.*Gyro.*LPF/)) {
                                                  $scope.hw.gyrolpf = board[k];
-                                             } else if (k.match(/MPU.*LPF/)) {
+                                             } else if (k.match(/.*LPF/)) {
                                                  $scope.hw.accellpf = board[k];
                                                  $scope.hw.gyrolpf = board[k];
                                              }

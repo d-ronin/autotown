@@ -523,6 +523,10 @@ func handleRecentTunes(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if n, err := strconv.Atoi(r.FormValue("limit")); err == nil && n < len(rv) {
+		rv = rv[:n]
+	}
+
 	mustEncode(c, w, rv)
 }
 

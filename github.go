@@ -339,9 +339,24 @@ func handleUAVOs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/tar+gzip")
 
 	h := r.URL.Path[7:]
-	if err := gitArchive(c, h, w); err != nil {
+	k := "uavos@" + h
+	it, err := memcache.Get(c, k)
+	if err == nil {
+		w.Write(it.Value)
+		return
+	}
+
+	buf := &bytes.Buffer{}
+	if err := gitArchive(c, h, buf); err != nil {
 		log.Infof(c, "Error fetching stuff for %v: %v", h, err)
 		http.Error(w, err.Error(), 404)
 		return
 	}
+	memcache.Set(c, &memcache.Item{
+		Key:        k,
+		Value:      buf.Bytes(),
+		Expiration: time.Hour * 72,
+	})
+
+	w.Write(buf.Bytes())
 }

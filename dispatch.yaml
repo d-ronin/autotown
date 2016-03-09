@@ -1,0 +1,8 @@
+dispatch:
+  # Default module serves the typical web resources and all static resources.
+  - url: "*/favicon.ico"
+    module: default
+
+  # Send all mobile traffic to the mobile frontend.
+  - url: "*/convert"
+    module: py

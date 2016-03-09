@@ -1,13 +1,19 @@
 package autotown
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"golang.org/x/net/context"
+
+	"encoding/base64"
 
 	"github.com/dustin/httputil"
 	"go4.org/syncutil"
@@ -18,10 +24,12 @@ import (
 )
 
 const (
-	tagURL      = "https://api.github.com/repos/d-ronin/dRonin/tags"
+	tagURL      = "https://api.github.com/repos/d-ronin/dronindRonin/tags"
 	branchesURL = "https://api.github.com/repos/d-ronin/dRonin/branches"
 	pullURL     = "https://api.github.com/repos/d-ronin/dRonin/pulls"
 	hashURL     = "https://api.github.com/repos/d-ronin/dRonin/commits/"
+
+	maxConcurrent = 8
 )
 
 type githubTag struct {
@@ -48,6 +56,41 @@ type githubRef struct {
 	Type  string `json:"type"`
 }
 
+type gitCommit struct {
+	SHA    string
+	Commit struct {
+		Tree struct {
+			SHA string
+			URL string
+		}
+	}
+}
+
+type gitTree struct {
+	SHA  string
+	URL  string
+	Tree []struct {
+		Path string
+		Mode int64 `json:"mode,string"`
+		Type string
+		SHA  string
+		Size int64
+		URL  string
+	}
+	Truncated bool
+}
+
+type gitBlob struct {
+	SHA      string
+	Size     int
+	Content  string
+	Encoding string
+
+	filename string
+	mode     int64
+	size     int64
+}
+
 func fetchDecode(c context.Context, u string, ob interface{}) error {
 	log.Infof(c, "Fetching %v", u)
 	defer func(start time.Time) { log.Infof(c, "Fetched %v in %v", u, time.Since(start)) }(time.Now())
@@ -57,7 +100,9 @@ func fetchDecode(c context.Context, u string, ob interface{}) error {
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(os.Getenv("GITHUB_USER"), os.Getenv("GITHUB_AUTH_TOKEN"))
+	if os.Getenv("GITHUB_USER") != "" {
+		req.SetBasicAuth(os.Getenv("GITHUB_USER"), os.Getenv("GITHUB_AUTH_TOKEN"))
+	}
 	res, err := h.Do(req)
 	if err != nil {
 		return err
@@ -74,6 +119,23 @@ func fetchDecode(c context.Context, u string, ob interface{}) error {
 
 	d := json.NewDecoder(res.Body)
 	return d.Decode(ob)
+}
+
+func fetchDecodeCached(c context.Context, k, u string, ob interface{}) error {
+	_, err := memcache.JSON.Get(c, k, ob)
+	if err != nil {
+		err = fetchDecode(c, u, ob)
+		if err == nil {
+			memcache.JSON.Set(c, &memcache.Item{
+				Key:        k,
+				Object:     ob,
+				Expiration: time.Hour * 72,
+			})
+		}
+	} else {
+		log.Debugf(c, "%v was cached", k)
+	}
+	return err
 }
 
 func updateGithub(c context.Context) ([]githubRef, error) {
@@ -172,4 +234,94 @@ func handleGitLabels(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mustEncode(c, w, refs)
+}
+
+func gitArchive(c context.Context, h string, w io.Writer) error {
+	c, cancel := context.WithCancel(c)
+	defer cancel()
+
+	commit := &gitCommit{}
+	if err := fetchDecodeCached(c, "commit@"+h, hashURL+h, commit); err != nil {
+		return err
+	}
+
+	tree := &gitTree{}
+	if err := fetchDecodeCached(c, "tree@"+commit.Commit.Tree.SHA, commit.Commit.Tree.URL+"?recursive=true", tree); err != nil {
+		return err
+	}
+
+	if tree.Truncated {
+		return fmt.Errorf("Tree was truncated with %v items", len(tree.Tree))
+	}
+
+	g := syncutil.Group{}
+	gat := syncutil.NewGate(maxConcurrent)
+	ch := make(chan *gitBlob)
+
+	for _, t := range tree.Tree {
+		if !strings.HasPrefix(t.Path, "shared/uavobjectdefinition") {
+			continue
+		}
+		if t.Type != "blob" {
+			continue
+		}
+		t := t
+		g.Go(func() error {
+			gat.Start()
+			defer gat.Done()
+			log.Debugf(c, "Fetching %v @ %v", t.Path, t.SHA)
+			blob := &gitBlob{}
+			if err := fetchDecodeCached(c, "blob@"+t.SHA, t.URL, blob); err != nil {
+				cancel()
+				return err
+			}
+			blob.filename = t.Path
+			blob.mode = t.Mode
+			blob.size = t.Size
+			ch <- blob
+			return nil
+		})
+	}
+
+	go func() { g.Wait(); close(ch) }()
+
+	gz := gzip.NewWriter(w)
+	defer gz.Close()
+	t := tar.NewWriter(gz)
+	defer t.Close()
+
+	for blob := range ch {
+		err := t.WriteHeader(&tar.Header{
+			Name: blob.filename,
+			Mode: 0644,
+			Size: blob.size,
+		})
+		if err != nil {
+			return err
+		}
+		if blob.Encoding == "base64" {
+			b, err := base64.StdEncoding.DecodeString(blob.Content)
+			if err != nil {
+				return err
+			}
+			if _, err := t.Write(b); err != nil {
+				return err
+			}
+		}
+	}
+
+	return g.Err()
+}
+
+func handleUAVOs(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	w.Header().Set("Content-type", "application/tar+gzip")
+
+	h := r.URL.Path[7:]
+	if err := gitArchive(c, h, w); err != nil {
+		log.Infof(c, "Error fetching stuff for %v: %v", h, err)
+		http.Error(w, err.Error(), 404)
+		return
+	}
 }

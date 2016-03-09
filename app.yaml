@@ -17,6 +17,7 @@ skip_files:
 - ^(.*/)?.*\.bak$
 - ^(.git)/.*
 - ^src
+- ^py
 
 builtins:
 - datastore_admin: on

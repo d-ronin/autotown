@@ -56,6 +56,7 @@ func init() {
 	http.HandleFunc("/usageStats", handleUsageStats)
 	http.HandleFunc("/batch/asyncUsageStats", handleAsyncUsageStats)
 	http.HandleFunc("/exportTunes", handleExportTunes)
+	http.HandleFunc("/uavos/", handleUAVOs)
 
 	http.HandleFunc("/api/currentuser", handleCurrentUser)
 	http.Handle("/api/usageStats", corsHandleFunc(handleUsageStatsSummary))

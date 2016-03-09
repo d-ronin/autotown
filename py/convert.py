@@ -1,12 +1,11 @@
 import webapp2
+import urllib2
 from dronin.logfs import LogFSImport
 
-defs = {
-        'Release-20160120.3' : file('static/Release-20160120.3.tgz', 'rb').read()
-        }
-
 def GetDefinitions(githash):
-    return defs[githash]
+    url = 'http://dronin-autotown.appspot.com/uavos/' + githash
+    result = urllib2.urlopen(url)
+    return result.read()
 
 class UpgraderApp(webapp2.RequestHandler):
     def get(self):

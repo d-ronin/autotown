@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	tagURL      = "https://api.github.com/repos/d-ronin/dronindRonin/tags"
+	tagURL      = "https://api.github.com/repos/d-ronin/dRonin/tags"
 	branchesURL = "https://api.github.com/repos/d-ronin/dRonin/branches"
 	pullURL     = "https://api.github.com/repos/d-ronin/dRonin/pulls"
 	hashURL     = "https://api.github.com/repos/d-ronin/dRonin/commits/"

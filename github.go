@@ -2,6 +2,7 @@ package autotown
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
@@ -122,18 +123,37 @@ func fetchDecode(c context.Context, u string, ob interface{}) error {
 }
 
 func fetchDecodeCached(c context.Context, k, u string, ob interface{}) error {
-	_, err := memcache.JSON.Get(c, k, ob)
-	if err != nil {
-		err = fetchDecode(c, u, ob)
+	it, err := memcache.Get(c, k)
+	if err == nil {
+		r, err := gzip.NewReader(bytes.NewReader(it.Value))
 		if err == nil {
-			memcache.JSON.Set(c, &memcache.Item{
-				Key:        k,
-				Object:     ob,
-				Expiration: time.Hour * 72,
-			})
+			if err := json.NewDecoder(r).Decode(ob); err == nil {
+				log.Debugf(c, "%v was cached", k)
+				return nil
+			} else {
+				log.Infof(c, "Error decoding from cache: %v", err)
+			}
+		} else {
+			log.Infof(c, "Error ungzipping %d bytes from cache: %v", len(it.Value), err)
 		}
-	} else {
-		log.Debugf(c, "%v was cached", k)
+	}
+
+	err = fetchDecode(c, u, ob)
+	if err == nil {
+		j, err := json.Marshal(ob)
+		if err == nil {
+			b := &bytes.Buffer{}
+			z, _ := gzip.NewWriterLevel(b, gzip.BestCompression)
+			z.Write(j)
+			z.Close()
+			if err := memcache.Set(c, &memcache.Item{
+				Key:        k,
+				Value:      b.Bytes(),
+				Expiration: time.Hour * 72,
+			}); err != nil {
+				log.Infof(c, "Error setting cache: %v", err)
+			}
+		}
 	}
 	return err
 }

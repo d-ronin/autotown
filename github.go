@@ -122,7 +122,7 @@ func fetchDecode(c context.Context, u string, ob interface{}) error {
 	return d.Decode(ob)
 }
 
-func fetchDecodeCached(c context.Context, k, u string, ob interface{}) error {
+func fetchDecodeCached(c context.Context, k string, age time.Duration, u string, ob interface{}) error {
 	it, err := memcache.Get(c, k)
 	if err == nil {
 		r, err := gzip.NewReader(bytes.NewReader(it.Value))
@@ -149,7 +149,7 @@ func fetchDecodeCached(c context.Context, k, u string, ob interface{}) error {
 			if err := memcache.Set(c, &memcache.Item{
 				Key:        k,
 				Value:      b.Bytes(),
-				Expiration: time.Hour * 72,
+				Expiration: age,
 			}); err != nil {
 				log.Infof(c, "Error setting cache: %v", err)
 			}
@@ -261,12 +261,12 @@ func gitArchive(c context.Context, h string, w io.Writer) error {
 	defer cancel()
 
 	commit := &gitCommit{}
-	if err := fetchDecodeCached(c, "commit@"+h, hashURL+h, commit); err != nil {
+	if err := fetchDecodeCached(c, "commit@"+h, 0, hashURL+h, commit); err != nil {
 		return err
 	}
 
 	tree := &gitTree{}
-	if err := fetchDecodeCached(c, "tree@"+commit.Commit.Tree.SHA, commit.Commit.Tree.URL+"?recursive=true", tree); err != nil {
+	if err := fetchDecodeCached(c, "tree@"+commit.Commit.Tree.SHA, 0, commit.Commit.Tree.URL+"?recursive=true", tree); err != nil {
 		return err
 	}
 
@@ -291,7 +291,7 @@ func gitArchive(c context.Context, h string, w io.Writer) error {
 			defer gat.Done()
 			log.Debugf(c, "Fetching %v @ %v", t.Path, t.SHA)
 			blob := &gitBlob{}
-			if err := fetchDecodeCached(c, "blob@"+t.SHA, t.URL, blob); err != nil {
+			if err := fetchDecodeCached(c, "blob@"+t.SHA, 0, t.URL, blob); err != nil {
 				cancel()
 				return err
 			}

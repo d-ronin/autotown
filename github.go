@@ -14,8 +14,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"encoding/base64"
-
 	"github.com/dustin/httputil"
 	"go4.org/syncutil"
 	"google.golang.org/appengine"
@@ -82,14 +80,11 @@ type gitTree struct {
 }
 
 type gitBlob struct {
-	SHA      string
-	Size     int
-	Content  string
-	Encoding string
+	SHA  string `datastore:"sha"`
+	Size int64  `datastore:"size"`
+	Data []byte `datastore:"data" json:"content"`
 
-	filename string
-	mode     int64
-	size     int64
+	Filename string `json:"filename" datastore:"filename"`
 }
 
 func fetchDecode(c context.Context, u string, ob interface{}) error {
@@ -267,6 +262,16 @@ func handleGitLabels(w http.ResponseWriter, r *http.Request) {
 	mustEncode(c, w, refs)
 }
 
+func fetchBlob(c context.Context, h, filename, url string) (*gitBlob, error) {
+	k := "blob@" + h
+	blob := &gitBlob{}
+	if err := fetchDecodeCached(c, k, 0, url, blob); err != nil {
+		return nil, err
+	}
+	blob.Filename = filename
+	return blob, nil
+}
+
 func gitArchive(c context.Context, h string, w io.Writer) error {
 	c, cancel := context.WithCancel(c)
 	defer cancel()
@@ -301,14 +306,11 @@ func gitArchive(c context.Context, h string, w io.Writer) error {
 			gat.Start()
 			defer gat.Done()
 			log.Debugf(c, "Fetching %v @ %v", t.Path, t.SHA)
-			blob := &gitBlob{}
-			if err := fetchDecodeCached(c, "blob@"+t.SHA, 0, t.URL, blob); err != nil {
+			blob, err := fetchBlob(c, t.SHA, t.Path, t.URL)
+			if err != nil {
 				cancel()
 				return err
 			}
-			blob.filename = t.Path
-			blob.mode = t.Mode
-			blob.size = t.Size
 			ch <- blob
 			return nil
 		})
@@ -323,21 +325,15 @@ func gitArchive(c context.Context, h string, w io.Writer) error {
 
 	for blob := range ch {
 		err := t.WriteHeader(&tar.Header{
-			Name: blob.filename,
+			Name: blob.Filename,
 			Mode: 0644,
-			Size: blob.size,
+			Size: blob.Size,
 		})
 		if err != nil {
 			return err
 		}
-		if blob.Encoding == "base64" {
-			b, err := base64.StdEncoding.DecodeString(blob.Content)
-			if err != nil {
-				return err
-			}
-			if _, err := t.Write(b); err != nil {
-				return err
-			}
+		if _, err := t.Write(blob.Data); err != nil {
+			return err
 		}
 	}
 

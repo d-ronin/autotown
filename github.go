@@ -69,10 +69,12 @@ type gitCommit struct {
 }
 
 type gitTreeEntry struct {
-	Path string
+	Path string `datastore:"path,noindex"`
 	Type string `datastore:"-"`
-	SHA  string
-	Size int64
+	SHA  string `datastore:"sha"`
+	Size int64  `datastore:"size,noindex"`
+
+	Root string `json:"-" datastore:"root"`
 }
 
 type gitTree struct {
@@ -84,10 +86,10 @@ type gitTree struct {
 
 type gitBlob struct {
 	SHA  string `datastore:"sha"`
-	Size int64  `datastore:"size"`
+	Size int64  `datastore:"size,noindex"`
 	Data []byte `datastore:"data" json:"content"`
 
-	Filename string `json:"filename" datastore:"filename"`
+	Filename string `json:"filename" datastore:"filename,noindex"`
 }
 
 func fetchDecode(c context.Context, u string, ob interface{}) error {
@@ -300,10 +302,27 @@ considered_harmful:
 	return blob, nil
 }
 
-func fetchTree(c context.Context, h string) ([]gitTreeEntry, error) {
+func fetchTree(c context.Context, g *syncutil.Group, h string) ([]gitTreeEntry, error) {
 	k := "tree@" + h
 	trees := []gitTreeEntry{}
 	if err := gzCacheGet(c, k, &trees); err == nil {
+		return trees, nil
+	}
+
+	q := datastore.NewQuery("GitTree").Filter("root =", h)
+	for t := q.Run(c); ; {
+		var x gitTreeEntry
+		_, err := t.Next(&x)
+		if err == datastore.Done {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+
+		trees = append(trees, x)
+	}
+	if len(trees) > 0 {
+		gzCacheSet(c, k, 0, trees)
 		return trees, nil
 	}
 
@@ -315,6 +334,7 @@ func fetchTree(c context.Context, h string) ([]gitTreeEntry, error) {
 		return nil, fmt.Errorf("Tree was truncated with %v items", len(tree.Tree))
 	}
 
+	var keys []*datastore.Key
 	trees = nil
 	for _, t := range tree.Tree {
 		if !strings.HasPrefix(t.Path, "shared/uavobjectdefinition") {
@@ -323,9 +343,20 @@ func fetchTree(c context.Context, h string) ([]gitTreeEntry, error) {
 		if t.Type != "blob" {
 			continue
 		}
+		t.Root = h
 		trees = append(trees, t)
+		keys = append(keys, datastore.NewIncompleteKey(c, "GitTree", nil))
 	}
-	gzCacheSet(c, k, 0, trees)
+
+	g.Go(func() error {
+		_, err := datastore.PutMulti(c, keys, trees)
+		if err != nil {
+			log.Errorf(c, "Error persisting tree state: %v", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error { gzCacheSet(c, k, 0, trees); return nil })
 	return trees, nil
 }
 
@@ -333,17 +364,18 @@ func gitArchive(c context.Context, h string, w io.Writer) error {
 	c, cancel := context.WithCancel(c)
 	defer cancel()
 
+	g := &syncutil.Group{}
+
 	commit := &gitCommit{}
 	if err := fetchDecodeCached(c, "commit@"+h, 0, hashURL+h, commit); err != nil {
 		return err
 	}
 
-	blobs, err := fetchTree(c, commit.Commit.Tree.SHA)
+	blobs, err := fetchTree(c, g, commit.Commit.Tree.SHA)
 	if err != nil {
 		return err
 	}
 
-	g := &syncutil.Group{}
 	gat := syncutil.NewGate(maxConcurrent)
 	ch := make(chan *gitBlob)
 

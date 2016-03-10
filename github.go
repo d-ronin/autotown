@@ -122,7 +122,25 @@ func fetchDecode(c context.Context, u string, ob interface{}) error {
 	return d.Decode(ob)
 }
 
-func fetchDecodeCached(c context.Context, k string, age time.Duration, u string, ob interface{}) error {
+func gzCacheSet(c context.Context, k string, age time.Duration, ob interface{}) error {
+	j, err := json.Marshal(ob)
+	if err == nil {
+		b := &bytes.Buffer{}
+		z, _ := gzip.NewWriterLevel(b, gzip.BestCompression)
+		z.Write(j)
+		z.Close()
+		if err := memcache.Set(c, &memcache.Item{
+			Key:        k,
+			Value:      b.Bytes(),
+			Expiration: age,
+		}); err != nil {
+			log.Infof(c, "Error setting cache: %v", err)
+		}
+	}
+	return err
+}
+
+func gzCacheGet(c context.Context, k string, ob interface{}) error {
 	it, err := memcache.Get(c, k)
 	if err == nil {
 		r, err := gzip.NewReader(bytes.NewReader(it.Value))
@@ -137,25 +155,18 @@ func fetchDecodeCached(c context.Context, k string, age time.Duration, u string,
 			log.Infof(c, "Error ungzipping %d bytes from cache: %v", len(it.Value), err)
 		}
 	}
-
-	err = fetchDecode(c, u, ob)
-	if err == nil {
-		j, err := json.Marshal(ob)
-		if err == nil {
-			b := &bytes.Buffer{}
-			z, _ := gzip.NewWriterLevel(b, gzip.BestCompression)
-			z.Write(j)
-			z.Close()
-			if err := memcache.Set(c, &memcache.Item{
-				Key:        k,
-				Value:      b.Bytes(),
-				Expiration: age,
-			}); err != nil {
-				log.Infof(c, "Error setting cache: %v", err)
-			}
-		}
-	}
 	return err
+}
+
+func fetchDecodeCached(c context.Context, k string, age time.Duration, u string, ob interface{}) error {
+	if err := gzCacheGet(c, k, ob); err == nil {
+		return nil
+	}
+
+	if err := fetchDecode(c, u, ob); err == nil {
+		err = gzCacheSet(c, k, age, ob)
+	}
+	return nil
 }
 
 func updateGithub(c context.Context) ([]githubRef, error) {

@@ -17,6 +17,7 @@ import (
 	"github.com/dustin/httputil"
 	"go4.org/syncutil"
 	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
@@ -262,13 +263,38 @@ func handleGitLabels(w http.ResponseWriter, r *http.Request) {
 	mustEncode(c, w, refs)
 }
 
-func fetchBlob(c context.Context, h, filename, url string) (*gitBlob, error) {
+func fetchBlob(c context.Context, g *syncutil.Group, h, filename, url string) (*gitBlob, error) {
 	k := "blob@" + h
 	blob := &gitBlob{}
-	if err := fetchDecodeCached(c, k, 0, url, blob); err != nil {
+	if err := gzCacheGet(c, k, blob); err == nil {
+		return blob, nil
+	}
+
+	dk := datastore.NewKey(c, "GitBlob", h, 0, nil)
+	if err := datastore.Get(c, dk, blob); err == nil {
+		goto considered_harmful
+	}
+
+	if err := fetchDecode(c, url, blob); err != nil {
 		return nil, err
 	}
+
 	blob.Filename = filename
+	g.Go(func() error {
+		_, err := datastore.Put(c, dk, blob)
+		if err != nil {
+			log.Errorf(c, "Error storing blob: %v", err)
+		}
+		return nil
+	})
+
+	// Label, cache, and return
+considered_harmful:
+	blob.Filename = filename
+	g.Go(func() error {
+		gzCacheSet(c, k, 0, blob)
+		return nil
+	})
 	return blob, nil
 }
 
@@ -290,7 +316,7 @@ func gitArchive(c context.Context, h string, w io.Writer) error {
 		return fmt.Errorf("Tree was truncated with %v items", len(tree.Tree))
 	}
 
-	g := syncutil.Group{}
+	g := &syncutil.Group{}
 	gat := syncutil.NewGate(maxConcurrent)
 	ch := make(chan *gitBlob)
 
@@ -306,7 +332,7 @@ func gitArchive(c context.Context, h string, w io.Writer) error {
 			gat.Start()
 			defer gat.Done()
 			log.Debugf(c, "Fetching %v @ %v", t.Path, t.SHA)
-			blob, err := fetchBlob(c, t.SHA, t.Path, t.URL)
+			blob, err := fetchBlob(c, g, t.SHA, t.Path, t.URL)
 			if err != nil {
 				cancel()
 				return err

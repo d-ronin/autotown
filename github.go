@@ -28,6 +28,8 @@ const (
 	branchesURL = "https://api.github.com/repos/d-ronin/dRonin/branches"
 	pullURL     = "https://api.github.com/repos/d-ronin/dRonin/pulls"
 	hashURL     = "https://api.github.com/repos/d-ronin/dRonin/commits/"
+	treeURL     = "https://api.github.com/repos/d-ronin/dRonin/git/trees/"
+	blobURL     = "https://api.github.com/repos/d-ronin/dRonin/git/blobs/"
 
 	maxConcurrent = 8
 )
@@ -66,17 +68,17 @@ type gitCommit struct {
 	}
 }
 
-type gitTree struct {
+type gitTreeEntry struct {
+	Path string
+	Type string `datastore:"-"`
 	SHA  string
-	URL  string
-	Tree []struct {
-		Path string
-		Mode int64 `json:"mode,string"`
-		Type string
-		SHA  string
-		Size int64
-		URL  string
-	}
+	Size int64
+}
+
+type gitTree struct {
+	SHA       string
+	URL       string
+	Tree      []gitTreeEntry
 	Truncated bool
 }
 
@@ -263,7 +265,7 @@ func handleGitLabels(w http.ResponseWriter, r *http.Request) {
 	mustEncode(c, w, refs)
 }
 
-func fetchBlob(c context.Context, g *syncutil.Group, h, filename, url string) (*gitBlob, error) {
+func fetchBlob(c context.Context, g *syncutil.Group, h, filename string) (*gitBlob, error) {
 	k := "blob@" + h
 	blob := &gitBlob{}
 	if err := gzCacheGet(c, k, blob); err == nil {
@@ -275,7 +277,7 @@ func fetchBlob(c context.Context, g *syncutil.Group, h, filename, url string) (*
 		goto considered_harmful
 	}
 
-	if err := fetchDecode(c, url, blob); err != nil {
+	if err := fetchDecode(c, blobURL+h, blob); err != nil {
 		return nil, err
 	}
 
@@ -298,6 +300,35 @@ considered_harmful:
 	return blob, nil
 }
 
+func fetchTree(c context.Context, h string) ([]gitTreeEntry, error) {
+	k := "tree@" + h
+	trees := []gitTreeEntry{}
+	if err := gzCacheGet(c, k, &trees); err == nil {
+		return trees, nil
+	}
+
+	tree := &gitTree{}
+	if err := fetchDecode(c, treeURL+h+"?recursive=1", tree); err != nil {
+		return nil, err
+	}
+	if tree.Truncated {
+		return nil, fmt.Errorf("Tree was truncated with %v items", len(tree.Tree))
+	}
+
+	trees = nil
+	for _, t := range tree.Tree {
+		if !strings.HasPrefix(t.Path, "shared/uavobjectdefinition") {
+			continue
+		}
+		if t.Type != "blob" {
+			continue
+		}
+		trees = append(trees, t)
+	}
+	gzCacheSet(c, k, 0, trees)
+	return trees, nil
+}
+
 func gitArchive(c context.Context, h string, w io.Writer) error {
 	c, cancel := context.WithCancel(c)
 	defer cancel()
@@ -307,32 +338,22 @@ func gitArchive(c context.Context, h string, w io.Writer) error {
 		return err
 	}
 
-	tree := &gitTree{}
-	if err := fetchDecodeCached(c, "tree@"+commit.Commit.Tree.SHA, 0, commit.Commit.Tree.URL+"?recursive=true", tree); err != nil {
+	blobs, err := fetchTree(c, commit.Commit.Tree.SHA)
+	if err != nil {
 		return err
-	}
-
-	if tree.Truncated {
-		return fmt.Errorf("Tree was truncated with %v items", len(tree.Tree))
 	}
 
 	g := &syncutil.Group{}
 	gat := syncutil.NewGate(maxConcurrent)
 	ch := make(chan *gitBlob)
 
-	for _, t := range tree.Tree {
-		if !strings.HasPrefix(t.Path, "shared/uavobjectdefinition") {
-			continue
-		}
-		if t.Type != "blob" {
-			continue
-		}
+	for _, t := range blobs {
 		t := t
 		g.Go(func() error {
 			gat.Start()
 			defer gat.Done()
 			log.Debugf(c, "Fetching %v @ %v", t.Path, t.SHA)
-			blob, err := fetchBlob(c, g, t.SHA, t.Path, t.URL)
+			blob, err := fetchBlob(c, g, t.SHA, t.Path)
 			if err != nil {
 				cancel()
 				return err

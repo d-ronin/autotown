@@ -379,6 +379,12 @@ func gitArchive(c context.Context, h string, w io.Writer) error {
 	gat := syncutil.NewGate(maxConcurrent)
 	ch := make(chan *gitBlob)
 
+	// This can be optimized considerably by bulk fetching all the
+	// blob keys from memcache, and then any failing ones from
+	// blob store before doing the individual work.  Similarly,
+	// they can be bulk persisted and cached.
+	// The downside is that convenience methods for decompressing
+	// and decoding the cached data end up being specific to blobs.
 	for _, t := range blobs {
 		t := t
 		g.Go(func() error {

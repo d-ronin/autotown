@@ -163,10 +163,11 @@ func fetchDecodeCached(c context.Context, k string, age time.Duration, u string,
 		return nil
 	}
 
-	if err := fetchDecode(c, u, ob); err == nil {
-		err = gzCacheSet(c, k, age, ob)
+	err := fetchDecode(c, u, ob)
+	if err == nil {
+		gzCacheSet(c, k, age, ob)
 	}
-	return nil
+	return err
 }
 
 func updateGithub(c context.Context) ([]githubRef, error) {

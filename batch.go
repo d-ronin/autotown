@@ -89,7 +89,7 @@ func queueMore(c context.Context) bool {
 		log.Errorf(c, "Error getting queue stats: %v", err)
 		return false
 	}
-	log.Infof(c, "map2 queue stats: %+v", st[0])
+	log.Debugf(c, "map2 queue stats: %+v", st[0])
 
 	return st[0].Tasks < resubmitThreshold
 }
@@ -122,7 +122,7 @@ func batchMap(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
 	if !queueMore(c) {
-		log.Infof(c, "Too many jobs queued, backing off")
+		log.Debugf(c, "Too many jobs queued, backing off")
 		http.Error(w, "Busy", 503)
 		return
 	}
@@ -131,7 +131,7 @@ func batchMap(w http.ResponseWriter, r *http.Request) {
 	if cstr := r.FormValue("cursor"); cstr != "" {
 		cursor, err := datastore.DecodeCursor(cstr)
 		maybePanic(err)
-		log.Infof(c, "Starting from cursor %v", cstr)
+		log.Debugf(c, "Starting from cursor %v", cstr)
 		q = q.Start(cursor)
 	}
 
@@ -170,7 +170,7 @@ func batchMap(w http.ResponseWriter, r *http.Request) {
 		maybePanic(z.Flush())
 		maybePanic(z.Close())
 
-		log.Infof(c, "Queueing %v with %v keys compressed to %v bytes",
+		log.Debugf(c, "Queueing %v with %v keys compressed to %v bytes",
 			mapStage2, len(subkeys), buf.Len())
 
 		tasks = append(tasks, &taskqueue.Task{
@@ -189,7 +189,7 @@ func batchMap(w http.ResponseWriter, r *http.Request) {
 		cursor, err := t.Cursor()
 		maybePanic(err)
 
-		log.Infof(c, "Requesting more from %v", cursor.String())
+		log.Debugf(c, "Requesting more from %v", cursor.String())
 		r.Form.Set("cursor", cursor.String())
 		taskqueue.Add(c, taskqueue.NewPOSTTask("/batch/map", r.Form), mapStage1)
 	}
@@ -328,7 +328,7 @@ func handleProcessUsage(w http.ResponseWriter, r *http.Request) {
 				return err
 			})
 			tasks = nil
-			log.Infof(c, "Added a batch of 100")
+			log.Debugf(c, "Added a batch of 100")
 		}
 
 		total++
@@ -339,7 +339,7 @@ func handleProcessUsage(w http.ResponseWriter, r *http.Request) {
 			_, err := taskqueue.AddMulti(c, tasks, "asyncRollupBE")
 			return err
 		})
-		log.Infof(c, "Added a batch of %v", len(tasks))
+		log.Debugf(c, "Added a batch of %v", len(tasks))
 	}
 
 	if err := grp.Err(); err != nil {
@@ -348,7 +348,7 @@ func handleProcessUsage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Infof(c, "Queued %v entries for batch processing", total)
+	log.Debugf(c, "Queued %v entries for batch processing", total)
 
 	w.WriteHeader(202)
 }

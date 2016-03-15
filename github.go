@@ -171,7 +171,7 @@ func fetchDecodeCached(c context.Context, k string, age time.Duration, u string,
 }
 
 func updateGithub(c context.Context) ([]githubRef, error) {
-	log.Infof(c, "Updating stuff from github")
+	log.Debugf(c, "Updating stuff from github")
 
 	var tags, branches []githubTag
 	var pulls []githubPull
@@ -218,7 +218,7 @@ func updateGithub(c context.Context) ([]githubRef, error) {
 		})
 	}
 
-	log.Infof(c, "Found %v references", len(rv))
+	log.Debugf(c, "Found %v references", len(rv))
 	return rv, nil
 }
 

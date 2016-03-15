@@ -187,7 +187,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 		log.Infof(c, "Error caching and/or notifying of tune: %v", err)
 	}
 
-	log.Infof(c, "Stored tune with key %v", k.Encode())
+	log.Debugf(c, "Stored tune with key %v", k.Encode())
 
 	w.Header().Set("Location", tuneURL)
 	w.WriteHeader(201)
@@ -210,7 +210,7 @@ func handleAsyncStoreTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Infof(c, "Stored tune with key %v", k.Encode())
+	log.Debugf(c, "Stored tune with key %v", k.Encode())
 
 	t.Key = k
 	if err := cacheTune(c, &t); err != nil {

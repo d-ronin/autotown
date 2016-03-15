@@ -76,12 +76,16 @@ func handleRewriteUUIDs(w http.ResponseWriter, r *http.Request) {
 		toUpdate = append(toUpdate, x)
 	}
 
-	log.Infof(c, "Updating %v items", len(keys))
-	_, err := datastore.PutMulti(c, keys, toUpdate)
-	if err != nil {
-		log.Errorf(c, "Error udpating tune records: %v", err)
-		http.Error(w, err.Error(), 500)
-		return
+	if len(keys) > 0 {
+		log.Infof(c, "Updating %v items", len(keys))
+		_, err := datastore.PutMulti(c, keys, toUpdate)
+		if err != nil {
+			log.Errorf(c, "Error udpating tune records: %v", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	} else {
+		log.Debugf(c, "No items to update")
 	}
 
 	w.WriteHeader(204)

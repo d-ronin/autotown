@@ -31,6 +31,8 @@ const (
 	treeURL     = "https://api.github.com/repos/d-ronin/dRonin/git/trees/"
 	blobURL     = "https://api.github.com/repos/d-ronin/dRonin/git/blobs/"
 
+	gitHashOfLastResort = "Release-20160120.3"
+
 	maxConcurrent = 8
 )
 
@@ -427,29 +429,41 @@ func gitArchive(c context.Context, h string, w io.Writer) error {
 }
 
 func handleUAVOs(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
 
 	w.Header().Set("Content-type", "application/tar+gzip")
 
-	h := r.URL.Path[7:]
-	k := "uavos@" + h
-	it, err := memcache.Get(c, k)
-	if err == nil {
-		w.Write(it.Value)
+	hashes := append([]string{r.URL.Path[7:]}, r.Form["altGitHash"]...)
+	hashes = append(hashes, gitHashOfLastResort)
+
+	c := appengine.NewContext(r)
+
+	for _, h := range hashes {
+		k := "uavos@" + h
+		it, err := memcache.Get(c, k)
+		if err == nil {
+			w.Write(it.Value)
+			return
+		}
+
+		buf := &bytes.Buffer{}
+		if err := gitArchive(c, h, buf); err != nil {
+			log.Infof(c, "Error fetching stuff for %v: %v", h, err)
+			continue
+		}
+		memcache.Set(c, &memcache.Item{
+			Key:        k,
+			Value:      buf.Bytes(),
+			Expiration: time.Hour * 72,
+		})
+
+		w.Header().Set("X-Resolved-Ref", h)
+		w.Write(buf.Bytes())
 		return
 	}
 
-	buf := &bytes.Buffer{}
-	if err := gitArchive(c, h, buf); err != nil {
-		log.Infof(c, "Error fetching stuff for %v: %v", h, err)
-		http.Error(w, err.Error(), 404)
-		return
-	}
-	memcache.Set(c, &memcache.Item{
-		Key:        k,
-		Value:      buf.Bytes(),
-		Expiration: time.Hour * 72,
-	})
-
-	w.Write(buf.Bytes())
+	http.Error(w, "No trees could be resolved.", 404)
 }

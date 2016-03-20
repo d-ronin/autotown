@@ -321,15 +321,6 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 		})
 	}
 
-	if newBoard != "" {
-		g.Go(func() error {
-			if err := notify.Call(c, "New Device", newBoard, statsURL); err != nil {
-				log.Infof(c, "Error notifying about new board: %v", err)
-			}
-			return nil
-		})
-	}
-
 	return g.Err()
 }
 

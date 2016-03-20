@@ -321,6 +321,10 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 		})
 	}
 
+	if newBoard != "" {
+		log.Infof(c, "New board: %v", newBoard)
+	}
+
 	return g.Err()
 }
 

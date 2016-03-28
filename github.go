@@ -31,8 +31,6 @@ const (
 	treeURL     = "https://api.github.com/repos/d-ronin/dRonin/git/trees/"
 	blobURL     = "https://api.github.com/repos/d-ronin/dRonin/git/blobs/"
 
-	gitHashOfLastResort = "Release-20160120.3"
-
 	maxConcurrent = 8
 )
 
@@ -437,7 +435,6 @@ func handleUAVOs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/tar+gzip")
 
 	hashes := append([]string{r.URL.Path[7:]}, r.Form["altGitHash"]...)
-	hashes = append(hashes, gitHashOfLastResort)
 
 	c := appengine.NewContext(r)
 

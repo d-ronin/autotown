@@ -180,7 +180,12 @@ func updateGithub(c context.Context) ([]githubRef, error) {
 	g := syncutil.Group{}
 	g.Go(func() error { return fetchDecode(c, tagURL, &tags) })
 	g.Go(func() error { return fetchDecode(c, branchesURL, &branches) })
-	g.Go(func() error { return fetchDecode(c, pullURL, &pulls) })
+	g.Go(func() error {
+		if err := fetchDecode(c, pullURL, &pulls); err != nil {
+			log.Warningf(c, "Error pulling github PR data.  Omitting from stats.  %v", err)
+		}
+		return nil
+	})
 
 	if err := g.Err(); err != nil {
 		return nil, err

@@ -110,7 +110,11 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                          $scope.tune = data;
 
                                          $scope.hw = {};
-                                         var board = data.Orig.rawSettings["Hw" + data.Board].fields;
+                                         var bkey = "Hw" + data.Board;
+                                         if (bkey == "HwCC3D") {
+                                             bkey = "HwCopterControl";
+                                         }
+                                         var board = data.Orig.rawSettings[bkey].fields;
                                          for (var k in board) {
                                              if (k.match(/.*Rate/)) {
                                                  $scope.hw.mpurate = board[k];

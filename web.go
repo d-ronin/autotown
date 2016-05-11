@@ -151,12 +151,6 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 	}
 
 	grp := syncutil.Group{}
-	grp.Go(func() error {
-		return notify.Call(c, "New Tune",
-			fmt.Sprintf("Someone posted a new tune from a %v with %.2f mS tau",
-				canonicalBoard(fields.Vehicle.Firmware.Board), 1000.0*fields.Identification.Tau),
-			"https://dronin-autotown.appspot.com/at/")
-	})
 
 	k, err := datastore.Put(c, datastore.NewIncompleteKey(c, "TuneResults", nil), &t)
 	if err != nil {
@@ -184,7 +178,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 	grp.Go(func() error { return cacheTune(c, &t) })
 
 	if err := grp.Err(); err != nil {
-		log.Infof(c, "Error caching and/or notifying of tune: %v", err)
+		log.Infof(c, "Error caching tune: %v", err)
 	}
 
 	log.Debugf(c, "Stored tune with key %v", k.Encode())

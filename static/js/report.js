@@ -1,4 +1,5 @@
 var boardColors = d3.scale.category20();
+var countries = {};
 
 function drawBoardGraph(data) {
     nv.addGraph(function() {
@@ -47,6 +48,38 @@ function drawCountryGraph(data) {
         values.splice(20);
 
         d3.select('#countries svg')
+            .datum([{'key': 'Countries', values: values}])
+            .transition().duration(500)
+            .call(chart)
+        ;
+
+        nv.utils.windowResize(chart.update);
+
+        return chart;
+    });
+}
+
+function drawCountryGraphNormalized(data) {
+    nv.addGraph(function() {
+        var chart = nv.models.discreteBarChart()
+            .x(function(d) { return d.key })
+            .y(function(d) { return d.value })
+            .staggerLabels(true)
+            .tooltips(false)
+            .valueFormat(d3.format(',f'))
+            .showValues(true);
+
+        chart.yAxis.tickFormat(d3.format(',d'));
+
+        var values = d3.entries(data['country_board']).map(function(e) {
+            return {key: e.key,
+                    pop: d3.sum(d3.values(e.value)),
+                    value: (countries[e.key] || 0) * d3.sum(d3.values(e.value))};
+        }).filter(function(d) { return d.value >= 1; });
+        values.sort(function (a, b) {return d3.descending(a.value, b.value); });
+        values.splice(20);
+
+        d3.select('#countries-pop svg')
             .datum([{'key': 'Countries', values: values}])
             .transition().duration(500)
             .call(chart)
@@ -308,4 +341,27 @@ function showRecent(data) {
             }
             return t;
         });
+}
+
+function grokCountries(data) {
+    var pops = {};
+    var min = 100000000000, max = 0;
+    for (var i = 0; i < data.length; i++) {
+        var c = data[i];
+        var pop = +c.Population;
+        if (pop == 0) {
+            continue;
+        }
+        min = Math.min(min, pop);
+        max = Math.max(max, pop);
+        pops[c['Country code']] = pop;
+    }
+
+    d3.map(pops).forEach(function(k, v) {
+        countries[k] = 1/( (v-min)/(max-min));
+    });
+
+
+    console.log(pops, min, max);
+    console.log(countries);
 }

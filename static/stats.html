@@ -70,6 +70,11 @@
         width: 800px;
       }
 
+      #countries-pop svg {
+        height: 450px;
+        width: 800px;
+      }
+
       #countrymap {
         height: 450;
         width: 800;
@@ -101,11 +106,15 @@
       <div id="versions"><h2>Versions</h2><svg></svg></div>
       <div id="countrymap"></div>
       <div id="countries"><h2>Top 20 Countries</h2><svg></svg></div>
+      <div id="countries-pop"><h2>Top 20 Countries (normalized)</h2><svg></svg></div>
     </div>
   </body>
 
   <script src="/static/js/report.js"></script>
   <script lang="javascript">
+    d3.tsv("/static/countries.tsv", function(error, data) {
+      grokCountries(data);
+    });
     d3.json("//dronin-autotown.appspot.com/api/usageStats", function(error, data) {
     if (error) return console.warn(error);
         var total = 0;
@@ -114,6 +123,7 @@
         drawBoardGraph(data);
         drawOSGraph(data);
         drawCountryGraph(data);
+        drawCountryGraphNormalized(data);
         drawCountryMap(data);
         drawVersionGraph(data);
         drawProcessorGraph(data);

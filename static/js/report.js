@@ -66,7 +66,7 @@ function drawCountryGraphNormalized(data) {
             .y(function(d) { return d.value })
             .staggerLabels(true)
             .tooltips(false)
-            .valueFormat(d3.format(',f'))
+            .valueFormat(d3.format(',.1f'))
             .showValues(true);
 
         chart.yAxis.tickFormat(d3.format(',d'));
@@ -358,10 +358,6 @@ function grokCountries(data) {
     }
 
     d3.map(pops).forEach(function(k, v) {
-        countries[k] = 1/( (v-min)/(max-min));
+        countries[k] = 1000000/v;
     });
-
-
-    console.log(pops, min, max);
-    console.log(countries);
 }

@@ -1,4 +1,5 @@
 var boardColors = d3.scale.category20();
+var countryColors = d3.scale.category20();
 var countries = {};
 
 function drawBoardGraph(data) {
@@ -37,6 +38,7 @@ function drawCountryGraph(data) {
             .staggerLabels(true)
             .tooltips(false)
             .valueFormat(d3.format(',f'))
+            .color(function(d) { return boardColors(d.key);})
             .showValues(true);
 
         chart.yAxis.tickFormat(d3.format(',d'));
@@ -67,6 +69,7 @@ function drawCountryGraphNormalized(data) {
             .staggerLabels(true)
             .tooltips(false)
             .valueFormat(d3.format(',.1f'))
+            .color(function(d) { return boardColors(d.key);})
             .showValues(true);
 
         chart.yAxis.tickFormat(d3.format(',d'));

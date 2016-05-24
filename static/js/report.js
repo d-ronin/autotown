@@ -94,136 +94,124 @@ function drawCountryGraphNormalized(data) {
     });
 }
 
-function drawCountryMap(data) {
-    d3_queue.queue()
-        .defer(d3_request.requestJson, "/static/lib/world-110m.json")
-        .defer(d3_request.requestCsv, "//dronin-autotown.appspot.com/api/usageDetails")
-        .awaitAll(function(error, results) {
-            if (error) {
-                console.log(error);
-                return;
-            }
+function drawCountryMap(world, boards) {
+    boards = boards.filter(function(d) { return d.lon != 0 && d.lat != 0; });
 
-            var world = results[0];
-            var boards = results[1].filter(function(d) { return d.lon != 0 && d.lat != 0; });
+    var width = 800,
+        height = 450,
+        centered;
 
-            var width = 800,
-                height = 450,
-                centered;
+    var projection = d3.geo.mercator()
+        .scale((width + 1) / 2 / Math.PI)
+        .translate([width / 2, height / 2])
+        .precision(.1);
 
-            var projection = d3.geo.mercator()
-                .scale((width + 1) / 2 / Math.PI)
-                .translate([width / 2, height / 2])
-                .precision(.1);
+    var path = d3.geo.path()
+        .projection(projection);
 
-            var path = d3.geo.path()
-                .projection(projection);
+    var graticule = d3.geo.graticule();
 
-            var graticule = d3.geo.graticule();
+    var svg = d3.select("#countrymap").append("svg")
+        .attr("width", width)
+        .attr("height", height);
 
-            var svg = d3.select("#countrymap").append("svg")
-                .attr("width", width)
-                .attr("height", height);
+    var g = svg.append("g");
 
-            var g = svg.append("g");
+    var clickedMap = function(d) {
+        var x, y, k;
+        if (d && d.lat) {
+            var p = projection([d.lon, d.lat]);
+            x = p[0];
+            y = p[1];
+            k = 6;
+        } else if (d) {
+            var centroid = path.centroid(d);
+            x = centroid[0];
+            y = centroid[1];
+            k = 4;
+        } else {
+            x = width / 2;
+            y = height / 2;
+            k = 1;
+            centered = null;
+        }
 
-            var clickedMap = function(d) {
-                var x, y, k;
-                if (d && d.lat) {
-                    var p = projection([d.lon, d.lat]);
-                    x = p[0];
-                    y = p[1];
-                    k = 6;
-                } else if (d) {
-                    var centroid = path.centroid(d);
-                    x = centroid[0];
-                    y = centroid[1];
-                    k = 4;
-                } else {
-                    x = width / 2;
-                    y = height / 2;
-                    k = 1;
-                    centered = null;
-                }
+        g.selectAll("path")
+            .classed("active", centered && function(d) { return d === centered; });
 
-                g.selectAll("path")
-                    .classed("active", centered && function(d) { return d === centered; });
+        g.transition()
+            .duration(750)
+            .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")scale(" + k + ")translate(" + -x + "," + -y + ")")
+            .style("stroke-width", 1.5 / k + "px");
 
-                g.transition()
-                    .duration(750)
-                    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")scale(" + k + ")translate(" + -x + "," + -y + ")")
-                    .style("stroke-width", 1.5 / k + "px");
+        g.selectAll("#countrymap svg .cluster").transition().duration(1200)
+            .attr("r", 2/k);
+    }
 
-                g.selectAll("#countrymap svg .cluster").transition().duration(1200)
-                    .attr("r", 2/k);
-            }
+    g.append("rect")
+        .attr("class", "background")
+        .attr("width", width)
+        .attr("height", height)
+        .on("click", clickedMap);
 
+    g.append("g")
+        .attr("id", "countries")
+        .selectAll("path")
+        .data(topojson.feature(world, world.objects.countries).features)
+        .enter().append("path")
+        .attr("d", path)
+        .attr("class", "land")
+        .on("click", clickedMap);
 
-            g.append("rect")
-                .attr("class", "background")
-                .attr("width", width)
-                .attr("height", height)
-                .on("click", clickedMap);
-
-            g.append("g")
-                .attr("id", "countries")
-                .selectAll("path")
-                .data(topojson.feature(world, world.objects.countries).features)
-              .enter().append("path")
-                .attr("d", path)
-                .attr("class", "land")
-                .on("click", clickedMap);
-
-            g.append("path")
-                .datum(topojson.mesh(world, world.objects.countries, function(a, b) { return a !== b; }))
-                .attr("class", "boundary")
-                .attr("d", path);
+    g.append("path")
+        .datum(topojson.mesh(world, world.objects.countries, function(a, b) { return a !== b; }))
+        .attr("class", "boundary")
+        .attr("d", path);
 
 
-            var tooltip = d3.select("#countrymap")
-                .append("div")
-                .attr("class", "nvtooltip xy-tooltip nv-pointer-events-none")
-                .style("position", "absolute")
-                .style("z-index", "10")
-                .style("visibility", "hidden")
-                .text("");
+    var tooltip = d3.select("#countrymap")
+        .append("div")
+        .attr("class", "nvtooltip xy-tooltip nv-pointer-events-none")
+        .style("position", "absolute")
+        .style("z-index", "10")
+        .style("visibility", "hidden")
+        .text("");
 
-            g.selectAll("#countrymap svg .cluster")
-                .data(boards)
-                .enter().append("svg:circle")
-                .attr("class", function(d) {
-                    return "cluster board-" + d.name;
-                })
-                .attr("cx", function(d) {  return projection([d.lon, d.lat])[0]; })
-                .attr("cy", function(d) { return projection([d.lon, d.lat])[1]; })
-                .attr("fill", function(d) { return boardColors(d.name); })
-                .attr("r", 0)
-                .on("mouseover", function(d){
-                    var ref = (d.ref || d.git_hash);
-                    tooltip.text("A " + d.name + " on " + ref + " in " + d.city + ", " + d.region + ", " + d.country);
-                    return tooltip.style("visibility", "visible");})
-                .on("mousemove", function() {
-                    return tooltip.style("top", (d3.event.pageY-10)+"px")
-                        .style("left",(d3.event.pageX+10)+"px");})
-                .on("mouseout", function()
-                    {return tooltip.style("visibility", "hidden");})
-                .on("click", clickedMap);
-
-
-            g.selectAll("#countrymap svg .cluster")
-                .data(boards)
-                .exit().remove();
-
-            g.selectAll("#countrymap svg .cluster")
-                .data(boards)
-                .transition()
-                .duration(3000)
-                .ease('bounce')
-                .attr("r", 2);
+    g.selectAll("#countrymap svg .cluster")
+        .data(boards)
+        .enter().append("svg:circle")
+        .attr("class", function(d) {
+            return "cluster board-" + d.name;
+        })
+        .attr("cx", function(d) {  return projection([d.lon, d.lat])[0]; })
+        .attr("cy", function(d) { return projection([d.lon, d.lat])[1]; })
+        .attr("fill", function(d) { return boardColors(d.name); })
+        .attr("r", 0)
+        .on("mouseover", function(d){
+            var ref = (d.ref || d.git_hash);
+            tooltip.text("A " + d.name + " on " + ref + " in " + d.city + ", " + d.region + ", " + d.country);
+            return tooltip.style("visibility", "visible");})
+        .on("mousemove", function() {
+            return tooltip.style("top", (d3.event.pageY-10)+"px")
+                .style("left",(d3.event.pageX+10)+"px");})
+        .on("mouseout", function()
+            {return tooltip.style("visibility", "hidden");})
+        .on("click", clickedMap);
 
 
-            d3.select(self.frameElement).style("height", height + "px");
-        });
+    g.selectAll("#countrymap svg .cluster")
+        .data(boards)
+        .exit().remove();
+
+    g.selectAll("#countrymap svg .cluster")
+        .data(boards)
+        .transition()
+        .duration(3000)
+        .ease('bounce')
+        .attr("r", 2);
+
+
+    d3.select(self.frameElement).style("height", height + "px");
 }
 
 var processorTypes = {
@@ -363,4 +351,42 @@ function grokCountries(data) {
     d3.map(pops).forEach(function(k, v) {
         countries[k] = 1000000/v;
     });
+}
+
+function drawPlots() {
+    // Charts drawn with basic data.
+    d3_queue.queue()
+        .defer(d3_request.requestTsv, "/static/countries.tsv")
+        .defer(d3_request.requestJson, "//dronin-autotown.appspot.com/api/usageStats")
+        .awaitAll(function(error, results) {
+            if (error) {
+                console.log(error);
+                return;
+            }
+
+            grokCountries(results[0]);
+            var data = results[1];
+
+            var total = 0;
+            d3.map(data['board']).forEach(function(k, v) { total += v; });
+            d3.select("#totalboards").text(d3.format(",d")(total));
+            drawBoardGraph(data);
+            drawOSGraph(data);
+            drawCountryGraph(data);
+            drawCountryGraphNormalized(data);
+            drawVersionGraph(data);
+            drawProcessorGraph(data);
+        });
+
+    // Charts that need a bit more data.
+    d3_queue.queue()
+        .defer(d3_request.requestJson, "/static/lib/world-110m.json")
+        .defer(d3_request.requestCsv, "//dronin-autotown.appspot.com/api/usageDetails")
+        .awaitAll(function(error, results) {
+            if (error) {
+                console.log(error);
+                return;
+            }
+            drawCountryMap(results[0], results[1]);
+        });
 }

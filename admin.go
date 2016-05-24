@@ -212,6 +212,21 @@ func handleAsyncRollup(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(204)
 }
 
+var oldest = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+func olderTime(a, b time.Time) time.Time {
+	switch {
+	case a.Before(oldest):
+		return b
+	case b.Before(oldest):
+		return a
+	case a.Before(b):
+		return a
+	default:
+		return b
+	}
+}
+
 func asyncRollup(c context.Context, d *asyncUsageData) error {
 	rec := struct {
 		BoardsSeen             []usageSeenBoard
@@ -276,9 +291,7 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 			}
 		}
 
-		if d.Timestamp.Before(fc.Oldest) {
-			fc.Oldest = d.Timestamp
-		}
+		fc.Oldest = olderTime(d.Timestamp, fc.Oldest)
 
 		fc.Count++
 
@@ -300,12 +313,7 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 			return err
 		}
 
-		if prev.Oldest.Before(v.Oldest) {
-			v.Oldest = prev.Oldest
-		}
-		if prev.Timestamp.After(v.Timestamp) {
-			v.Oldest = prev.Timestamp
-		}
+		v.Oldest = olderTime(olderTime(prev.Oldest, v.Oldest), prev.Timestamp)
 
 		keys = append(keys, key)
 		toUpdate = append(toUpdate, v)

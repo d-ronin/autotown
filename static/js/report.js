@@ -353,6 +353,46 @@ function grokCountries(data) {
     });
 }
 
+function drawWeeklyAdditions(data) {
+    var timeline = {};
+    data.forEach(function(v) {
+        var d = new Date(v.oldest.substr(0, 10));
+        d.setHours(0);
+        d.setMinutes(0);
+        d.setSeconds(0);
+        if (d.getDay() > 0) { d.setHours(-24 * (d.getDay())); }
+
+        timeline[+d] = (timeline[+d] || 0) + 1;
+    });
+    var tldata = [];
+    d3.map(timeline).forEach(function(k, v) {
+        tldata.push({x: +k, y: v});
+    });
+    tldata.sort(function (a, b) {return d3.ascending(a.x, b.x); });
+    tldata.splice(tldata.length-1); // Remove current week (looks sad)
+
+    nv.addGraph(function() {
+        var chart = nv.models.lineChart()
+            .tooltips(true);
+
+        chart.xAxis.tickFormat(function(d) {
+            return d3.time.format('%x')(new Date(d));
+        });
+
+        chart.yAxis.tickFormat(d3.format(',f'));
+
+        d3.select('#weekly svg')
+            .datum([{key: 'New Boards', values: tldata}])
+            .transition().duration(500)
+            .call(chart)
+        ;
+
+        nv.utils.windowResize(chart.update);
+
+        return chart;
+    });
+}
+
 function drawPlots() {
     // Charts drawn with basic data.
     d3_queue.queue()
@@ -388,5 +428,6 @@ function drawPlots() {
                 return;
             }
             drawCountryMap(results[0], results[1]);
+            drawWeeklyAdditions(results[1]);
         });
 }

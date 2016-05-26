@@ -354,28 +354,26 @@ function grokCountries(data) {
 }
 
 function drawWeeklyAdditions(data) {
-    var timeline = {"F1": {}, "F3": {}, "F4": {}};
+    var timeline = {"F1": {}, "F3": {}, "F4": {}, "Other": {}};
     data.forEach(function(v) {
-        var t = processorTypes[v.name];
+        var t = processorTypes[v.name] || "Other";
 
-        if (t) {
-            var d = new Date(v.oldest.substr(0, 10));
-            d.setHours(0);
-            d.setMinutes(0);
-            d.setSeconds(0);
-            if (d.getDay() > 0) { d.setHours(-24 * (d.getDay())); }
+        var d = new Date(v.oldest.substr(0, 10));
+        d.setHours(0);
+        d.setMinutes(0);
+        d.setSeconds(0);
+        if (d.getDay() > 0) { d.setHours(-24 * (d.getDay())); }
 
-            // Ensure we've got a value for every proc type.  There was one week
-            // with zero F3s, and that breaks the charting stuff. :(
-            ["F1", "F3", "F4"].forEach(function(proc) {
-                timeline[proc][+d] |= 0;
-            });
+        // Ensure we've got a value for every proc type.  There was one week
+        // with zero F3s, and that breaks the charting stuff. :(
+        ["F1", "F3", "F4", "Other"].forEach(function(proc) {
+            timeline[proc][+d] |= 0;
+        });
 
-            timeline[t][+d]++;
-        }
+        timeline[t][+d]++;
     });
     var tldata = [];
-    ["F1", "F3", "F4"].forEach(function(proc) {
+    ["F1", "F3", "F4", "Other"].forEach(function(proc) {
         var values = [];
         d3.map(timeline[proc]).forEach(function(k, v) {
             values.push({x: +k, y: v});

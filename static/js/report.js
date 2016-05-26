@@ -357,6 +357,7 @@ function drawWeeklyAdditions(data) {
     var timeline = {"F1": {}, "F3": {}, "F4": {}};
     data.forEach(function(v) {
         var t = processorTypes[v.name];
+
         if (t) {
             var d = new Date(v.oldest.substr(0, 10));
             d.setHours(0);
@@ -364,12 +365,18 @@ function drawWeeklyAdditions(data) {
             d.setSeconds(0);
             if (d.getDay() > 0) { d.setHours(-24 * (d.getDay())); }
 
-            timeline[t][+d] = (timeline[t][+d] || 0) + 1;
+            // Ensure we've got a value for every proc type.  There was one week
+            // with zero F3s, and that breaks the charting stuff. :(
+            ["F1", "F3", "F4"].forEach(function(proc) {
+                timeline[proc][+d] |= 0;
+            });
+
+            timeline[t][+d]++;
         }
     });
     var tldata = [];
     ["F1", "F3", "F4"].forEach(function(proc) {
-        var values = [];;
+        var values = [];
         d3.map(timeline[proc]).forEach(function(k, v) {
             values.push({x: +k, y: v});
         });
@@ -379,8 +386,10 @@ function drawWeeklyAdditions(data) {
     });
 
     nv.addGraph(function() {
-        var chart = nv.models.lineChart()
-            .tooltips(true);
+        var chart = nv.models.stackedAreaChart()
+            .useInteractiveGuideline(true)
+            .showControls(true)
+            .clipEdge(true);
 
         chart.xAxis.tickFormat(function(d) {
             return d3.time.format('%x')(new Date(d));

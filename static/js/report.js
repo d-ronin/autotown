@@ -1,4 +1,5 @@
 var boardColors = d3.scale.category20();
+var procColors = d3.scale.category20();
 var countryColors = d3.scale.category20();
 var countries = {};
 
@@ -239,6 +240,7 @@ function drawProcessorGraph(data) {
             .x(function(d) { return d.key })
             .y(function(d) { return d.value })
             .staggerLabels(true)
+            .color(function(d) { return procColors(d.key); })
             .tooltips(false)
             .valueFormat(d3.format(',f'))
             .showValues(true);
@@ -355,10 +357,12 @@ function grokCountries(data) {
     });
 }
 
-function drawWeeklyAdditions(data) {
-    var timeline = {"F1": {}, "F3": {}, "F4": {}, "Other": {}};
+function drawWeeklyAdditions(data, dest, colors, options, accessor) {
+    var timeline = {};
+    options.forEach(function(i) { timeline[i] = {}; });
     data.forEach(function(v) {
-        var t = processorTypes[v.name] || "Other";
+        var t = accessor(v);
+        if (!timeline[t]) { t = 'Other'; }
 
         var d = new Date(v.oldest.substr(0, 10));
         d.setHours(0);
@@ -367,14 +371,12 @@ function drawWeeklyAdditions(data) {
 
         // Ensure we've got a value for every proc type.  There was one week
         // with zero F3s, and that breaks the charting stuff. :(
-        ["F1", "F3", "F4", "Other"].forEach(function(proc) {
-            timeline[proc][+d] |= 0;
-        });
+        options.forEach(function(proc) { timeline[proc][+d] |= 0; });
 
         timeline[t][+d]++;
     });
     var tldata = [];
-    ["F1", "F3", "F4", "Other"].forEach(function(proc) {
+    options.forEach(function(proc) {
         var values = [];
         d3.map(timeline[proc]).forEach(function(k, v) {
             values.push({x: +k, y: v});
@@ -393,6 +395,7 @@ function drawWeeklyAdditions(data) {
             .useInteractiveGuideline(true)
             .showControls(true)
             .clipEdge(true)
+            .color(function(d) { return colors(d.key);})
             .interpolate("basis");
 
         chart.xAxis.tickFormat(function(d) {
@@ -401,7 +404,7 @@ function drawWeeklyAdditions(data) {
 
         chart.yAxis.tickFormat(d3.format(',f'));
 
-        d3.select('#weekly svg')
+        d3.select(dest)
             .datum(tldata)
             .transition().duration(500)
             .call(chart)
@@ -448,6 +451,14 @@ function drawPlots() {
                 return;
             }
             drawCountryMap(results[0], results[1]);
-            drawWeeklyAdditions(results[1]);
+            /*
+            drawWeeklyAdditions(results[1], '#weekly svg', boardColors,
+                                ["AQ32", "Brain", "BrainRE1", "CC3D", "Naze",
+                                 "Revo", "Sparky", "Sparky2", "Other"],
+                                function(d) { return d.name; });
+            */
+            drawWeeklyAdditions(results[1], '#weekly-proc svg', procColors,
+                                ['F1', 'F3', 'F4', 'Other'],
+                                function(d) { return processorTypes[d.name]; });
         });
 }

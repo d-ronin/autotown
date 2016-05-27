@@ -364,7 +364,6 @@ function drawWeeklyAdditions(data) {
         d.setHours(0);
         d.setMinutes(0);
         d.setSeconds(0);
-        if (d.getDay() > 0) { d.setHours(-24 * (d.getDay())); }
 
         // Ensure we've got a value for every proc type.  There was one week
         // with zero F3s, and that breaks the charting stuff. :(
@@ -381,15 +380,20 @@ function drawWeeklyAdditions(data) {
             values.push({x: +k, y: v});
         });
         values.sort(function (a, b) {return d3.ascending(a.x, b.x); });
-        values.splice(values.length-1); // Remove current week (looks sad)
-        tldata.push({key: proc, values: values});
+        // Reduce value set to sum of seven day windows.
+        var v7 = [];
+        for (var i = 7; i<values.length; i++) {
+            v7.push({x: values[i].x, y: d3.sum(values.slice(i-7, i), function(d) { return d.y; })});
+        }
+        tldata.push({key: proc, values: v7});
     });
 
     nv.addGraph(function() {
         var chart = nv.models.stackedAreaChart()
             .useInteractiveGuideline(true)
             .showControls(true)
-            .clipEdge(true);
+            .clipEdge(true)
+            .interpolate("basis");
 
         chart.xAxis.tickFormat(function(d) {
             return d3.time.format('%x')(new Date(d));

@@ -360,9 +360,10 @@ function grokCountries(data) {
 function drawWeeklyAdditions(data, dest, colors, options, accessor) {
     var timeline = {};
     options.forEach(function(i) { timeline[i] = {}; });
+    var others = {};
     data.forEach(function(v) {
         var t = accessor(v);
-        if (!timeline[t]) { t = 'Other'; }
+        if (!timeline[t]) { others[t] = (others[t] || 0) + 1; t = 'Other'; }
 
         var d = new Date(v.oldest.substr(0, 10));
         d.setHours(0);
@@ -375,6 +376,7 @@ function drawWeeklyAdditions(data, dest, colors, options, accessor) {
 
         timeline[t][+d]++;
     });
+    console.log("Others", others);
     var tldata = [];
     options.forEach(function(proc) {
         var values = [];

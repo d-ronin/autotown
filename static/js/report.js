@@ -453,14 +453,14 @@ function drawPlots() {
                 return;
             }
             drawCountryMap(results[0], results[1]);
-            /*
             drawWeeklyAdditions(results[1], '#weekly svg', boardColors,
-                                ["AQ32", "Brain", "BrainRE1", "CC3D", "Naze",
-                                 "Revo", "Sparky", "Sparky2", "Other"],
+                                ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
+                                 "quanton", "Revo", "Sparky", "Sparky2", "Other"],
                                 function(d) { return d.name; });
-            */
-            drawWeeklyAdditions(results[1], '#weekly-proc svg', procColors,
+            /*
+            drawWeeklyAdditions(results[1], '#weekly svg', procColors,
                                 ['F1', 'F3', 'F4', 'Other'],
                                 function(d) { return processorTypes[d.name]; });
+            */
         });
 }

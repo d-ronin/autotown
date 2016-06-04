@@ -294,7 +294,7 @@ function drawOSGraph(data) {
     });
 }
 
-var interestingRegex = /^(preview-|Release-)/;
+var interestingRegex = /^Release-/;
 
 function drawVersionGraph(data) {
     nv.addGraph(function() {

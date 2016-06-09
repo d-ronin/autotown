@@ -108,6 +108,7 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                          encodeURIComponent($routeParams.tuna);
                                      $http.get($scope.rawLink).success(function(data) {
                                          $scope.tune = data;
+                                         $scope.valid = data.Orig.identification.tau != 0;
 
                                          $scope.hw = {};
                                          var bkey = "Hw" + data.Board;

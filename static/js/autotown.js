@@ -66,16 +66,16 @@ autotown.controller('IndexCtrl', ['$scope', '$http',
                                               }).join(', ');
                                           };
                                           setTimeout(function() {
-                                              for (var i = 0; i < data.length; i++) {
-                                                  var d = data[i];
-                                                  if (!d.older) { continue; }
-                                                  var rv = d.older.map(function(x) {
-                                                      return (x.tau * 1000).toFixed(2);
-                                                  });
-                                                  rv.reverse();
-                                                  rv.push((d.Tau * 1000).toFixed(2));
-                                                  jQuery('#spark-' + d.Key).sparkline(rv);
-                                              }
+                                              data.forEach(function(d) {
+                                                  if (d.older) {
+                                                      var rv = d.older.map(function(x) {
+                                                          return (x.tau * 1000).toFixed(2);
+                                                      });
+                                                      rv.reverse();
+                                                      rv.push((d.Tau * 1000).toFixed(2));
+                                                      jQuery('#spark-' + d.Key).sparkline(rv);
+                                                  }
+                                              });
                                           }, 1);
                                       });
                                   }]);

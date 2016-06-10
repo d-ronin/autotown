@@ -56,42 +56,22 @@ autotown.controller('IndexCtrl', ['$scope', '$http',
                                   function($scope, $http) {
                                       $scope.isBogusTau = isBogusTau;
 
-                                      $http.get("/api/recentTunes").success(function(data) {
+                                      $http.get("//dronin-autotown.appspot.com/api/recentTunes").success(function(data) {
                                           $scope.recentTunes = data;
                                           $scope.olderFun = function(d) {
-                                              if (!d.older) {
-                                                  return ""
-                                              }
-                                              var rv = [];
-                                              for (var i = 0; i < d.older.length; i++) {
-                                                  var x = d.older[i];
-                                                  rv.push("" + (x.tau * 1000).toFixed(2) + "@" +
-                                                          moment(x.timestamp).fromNow());
-
-                                              }
-                                              return rv.join(', ');
+                                              if (!d.older) { return "" }
+                                              return d.older.map(function(x) {
+                                                  return "" + ((x.tau) * 1000).toFixed(2) + "@" +
+                                                      moment(x.timestamp).fromNow();
+                                              }).join(', ');
                                           };
-                                          $scope.olderSparks = function(d) {
-                                              if (!d.older) return "";
-                                              var rv = [];
-                                              for (var i = 0; i < d.older.length; i++) {
-                                                  var x = d.older[i];
-                                                  rv.push((x.tau * 1000).toFixed(2));
-
-                                              }
-                                              rv.reverse();
-                                              return "";
-                                          };
-
                                           setTimeout(function() {
                                               for (var i = 0; i < data.length; i++) {
                                                   var d = data[i];
                                                   if (!d.older) { continue; }
-                                                  var rv = [];
-                                                  for (var j = 0; j < d.older.length; j++) {
-                                                      var x = d.older[j];
-                                                      rv.push((x.tau * 1000).toFixed(2));
-                                                  }
+                                                  var rv = d.older.map(function(x) {
+                                                      return (x.tau * 1000).toFixed(2);
+                                                  });
                                                   rv.reverse();
                                                   rv.push((d.Tau * 1000).toFixed(2));
                                                   jQuery('#spark-' + d.Key).sparkline(rv);
@@ -104,7 +84,14 @@ autotown.controller('IndexCtrl', ['$scope', '$http',
 autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                  function($scope, $http, $routeParams) {
                                      $scope.isBogusTau = isBogusTau;
-                                     $scope.rawLink = "/api/tune?tune=" +
+                                     $scope.olderFun = function(d) {
+                                         if (!d) { return "" }
+                                         return d.map(function(x) {
+                                             return "" + (x.Tau * 1000).toFixed(2) + "@" +
+                                                 moment(x.Timestamp).fromNow();
+                                         }).join(', ');
+                                     };
+                                     $scope.rawLink = "//dronin-autotown.appspot.com/api/tune?tune=" +
                                          encodeURIComponent($routeParams.tuna);
                                      $http.get($scope.rawLink).success(function(data) {
                                          $scope.tune = data;
@@ -136,16 +123,21 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                          }
                                      });
 
-                                     var relatedLink = "/api/relatedTunes?tune=" +
+                                     var relatedLink = "//dronin-autotown.appspot.com/api/relatedTunes?tune=" +
                                          encodeURIComponent($routeParams.tuna);
                                      $http.get(relatedLink).success(function(data) {
                                          $scope.related = data;
+                                         setTimeout(function() {
+                                             var rv = data.map(function(d) { return (d.Tau*1000).toFixed(2);});
+                                             rv.reverse();
+                                             jQuery('#spark-related').sparkline(rv);
+                                         }, 1);
                                      })
                                  }]);
 
 autotown.controller('CrashCtrl', ['$scope', '$http',
                                   function($scope, $http) {
-                                      $http.get("/api/recentCrashes").success(function(data) {
+                                      $http.get("//dronin-autotown.appspot.com/api/recentCrashes").success(function(data) {
                                           $scope.recentCrashes = data;
                                           $scope.crashServer = 'https://console.developers.google.com/m/cloudstorage/b/dronin-autotown.appspot.com/o/';
                                       });

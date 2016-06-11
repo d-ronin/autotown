@@ -7,7 +7,6 @@
       <th>Arch</th>
       <th>Branch</th>
       <th>Commit</th>
-      <th>Build Info</th>
       <th>Comment</th>
       <th>Location</th>
     </tr>
@@ -16,11 +15,10 @@
   <tbody>
     <tr ng-repeat="c in recentCrashes">
       <td title="{{c.timestamp}}"><a href="{{crashServer}}{{c.file}}">{{c.timestamp|relDate}}</a></td>
-      <td>{{c.os}}</td>
-      <td>{{c.arch}}</td>
-      <td>{{c.branch}}</td>
-      <td><a href="https://github.com/d-ronin/dRonin/commit/{{c.commit}}">{{c.commit}}</a></td>
-      <td>{{c.buildInfo}}</td>
+      <td title="{{c.os}}">{{c.os_abbrev}}</td>
+      <td title="{{c.buildInfo}}">{{c.arch}}</td>
+      <td>{{c.gitBranch}}</td>
+      <td><a href="https://github.com/d-ronin/dRonin/commit/{{c.gitCommit}}">{{c.gitCommit}}</a></td>
       <td class="comment">{{c.comment}}</td>
       <td><a href="https://www.google.com/maps/@{{c.lat}},{{c.lon}},12z">{{c.city}},
           {{c.region}} {{c.country}}</a></td>

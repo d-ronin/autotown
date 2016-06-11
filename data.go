@@ -26,6 +26,9 @@ func (c *CrashData) Load(ps []datastore.Property) error {
 	c.properties = map[string]interface{}{}
 	for _, p := range ps {
 		c.properties[p.Name] = p.Value
+		if os, ok := p.Value.(string); ok && p.Name == "os" {
+			c.properties["os_abbrev"] = abbrevOS(os)
+		}
 	}
 	return nil
 }
@@ -36,6 +39,9 @@ func (c *CrashData) Save() ([]datastore.Property, error) {
 		n := crashNameMap[k]
 		if n == "" {
 			n = k
+		}
+		if n == "os_abbrev" {
+			continue
 		}
 		rv = append(rv, datastore.Property{
 			Name:  n,

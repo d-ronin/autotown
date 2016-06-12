@@ -37,3 +37,8 @@ div#relatedTunes tr.current {
     color: red;
     font-weight: bold;
 }
+
+#crashes tr  {
+    background: #eee;
+    border: solid 1px white;
+}

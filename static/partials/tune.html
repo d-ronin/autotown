@@ -116,6 +116,24 @@
 
 <h3>Computed Values</h3>
 
+<div ng-show="tune.Orig.dataVersion >= 3">
+  <div ng-show="tune.Orig.tuning.computed.converged" class="converged">
+    Converged in {{tune.Orig.tuning.computed.iterations}} iterations!
+  </div>
+  <div ng-hide="tune.Orig.tuning.computed.converged" class="failed">
+    <p>Unfortunately the tune <em>failed</em> to converge. </p>
+    <p>
+      This can happen due to a bad tune, or bad settings on the tuning
+      sliders above. You can try clicking &amp;Reset Sliders&amp; or
+      adjusting the sliders yourself.
+    </p>
+    <p>
+      You can still share the tune for analysis by the developers, but
+      it cannot be applied.
+    </p>
+  </div>
+</div>
+
 <p>Damping: {{tune.Orig.tuning.parameters.damping}}.
   Noise sensitivity: {{tune.Orig.tuning.parameters.noiseSensitivity}}.
 </p>

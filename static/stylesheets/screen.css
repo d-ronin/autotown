@@ -42,3 +42,8 @@ div#relatedTunes tr.current {
     background: #eee;
     border: solid 1px white;
 }
+
+#failed em {
+    font-weight: bold;
+    color: red;
+}

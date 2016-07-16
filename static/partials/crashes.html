@@ -14,7 +14,12 @@
 
   <tbody>
     <tr ng-repeat="c in recentCrashes">
-      <td title="{{c.timestamp}}"><a href="{{crashServer}}{{c.file}}">{{c.timestamp|relDate}}</a></td>
+      <td title="{{c.timestamp}}">
+        <a ng-show="c.trace" href="{{crashServer}}{{c.trace}}">
+          {{c.timestamp|relDate}}
+        </a>
+        <span ng-hide="c.trace">{{c.timestamp|relDate}}</span>
+      </td>
       <td title="{{c.os}}">{{c.os_abbrev}}</td>
       <td title="{{c.buildInfo}}">{{c.arch}}</td>
       <td>{{c.gitBranch}}</td>

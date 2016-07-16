@@ -53,6 +53,7 @@ func init() {
 	http.HandleFunc("/storeTune", handleStoreTune)
 	http.HandleFunc("/asyncStoreTune", handleAsyncStoreTune)
 	http.HandleFunc("/storeCrash", handleStoreCrash)
+	http.HandleFunc("/storeTrace/", handleStoreTrace)
 	http.HandleFunc("/usageStats", handleUsageStats)
 	http.HandleFunc("/batch/asyncUsageStats", handleAsyncUsageStats)
 	http.HandleFunc("/exportTunes", handleExportTunes)
@@ -767,6 +768,73 @@ func handleCrash(w http.ResponseWriter, r *http.Request) {
 	crash.Key = k
 
 	mustEncode(c, w, crash)
+}
+
+func handleStoreTrace(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	cid := r.URL.Path[len("/storeTrace/"):]
+
+	k, err := datastore.DecodeKey(cid)
+	if err != nil {
+		log.Errorf(c, "Error parsing crash key: %v", err)
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	crash := &CrashData{}
+	if err := datastore.Get(c, k, crash); err != nil {
+		log.Errorf(c, "Error grabbing crash: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	crash.Key = k
+
+	filename := crash.properties["file"].(string) + ".txt"
+
+	client, err := storage.NewClient(c)
+	if err != nil {
+		log.Warningf(c, "Error getting cloud store interface:  %v", err)
+		http.Error(w, "error talking to cloud store", 500)
+		return
+
+	}
+	defer client.Close()
+
+	var bucketName string
+	if bucketName, err = file.DefaultBucketName(c); err != nil {
+		log.Errorf(c, "failed to get default GCS bucket name: %v", err)
+		return
+	}
+
+	bucket := client.Bucket(bucketName)
+
+	wc := bucket.Object(filename).NewWriter(c)
+	wc.ContentType = "text/plain"
+
+	if _, err := io.Copy(wc, r.Body); err != nil {
+		log.Warningf(c, "Error writing stuff to blob store:  %v", err)
+		http.Error(w, "error writing to blob store", 500)
+		return
+	}
+	if err := wc.Close(); err != nil {
+		log.Warningf(c, "Error closing blob store:  %v", err)
+		http.Error(w, "error closing blob store", 500)
+		return
+	}
+
+	crash.properties["trace"] = filename
+
+	_, err = datastore.Put(c, k, crash)
+	if err != nil {
+		log.Warningf(c, "Error storing crash trace:  %v\n%#v", err, crash)
+		http.Error(w, "error storing crash trace", 500)
+		return
+	}
+
+	log.Infof(c, "Stored crash in %v", k)
+
+	w.WriteHeader(204)
 }
 
 type asyncUsageData struct {

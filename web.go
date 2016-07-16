@@ -24,6 +24,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/dustin/go-jsonpointer"
+	"github.com/dustin/httputil"
 	"github.com/rs/cors"
 	"go4.org/syncutil"
 
@@ -33,6 +34,7 @@ import (
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/taskqueue"
+	"google.golang.org/appengine/urlfetch"
 	"google.golang.org/cloud/storage"
 )
 
@@ -431,14 +433,41 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 	crash.properties["lat"] = lat
 	crash.properties["lon"] = lon
 
-	_, err = datastore.Put(c, datastore.NewIncompleteKey(c, "CrashData", nil), crash)
+	k, err := datastore.Put(c, datastore.NewIncompleteKey(c, "CrashData", nil), crash)
 	if err != nil {
 		log.Warningf(c, "Error storing tune results item:  %v\n%#v", err, crash)
 		http.Error(w, "error storing tune results", 500)
 		return
 	}
+	crash.Key = k
 
 	w.WriteHeader(204)
+
+	// Header's done, just have to try to advise workers.
+	notifyURL := "http://crash.dronin.tracer.nz/newCrash"
+	j, err := json.Marshal(crash)
+	if err != nil {
+		log.Errorf(c, "Error serializing crash to JSON: %v", err)
+		return
+	}
+
+	h := urlfetch.Client(c)
+	req, err := http.NewRequest("POST", notifyURL, bytes.NewReader(j))
+	if err != nil {
+		log.Errorf(c, "Error creating notification request: %v", err)
+		return
+	}
+	req.Header.Set("content-type", "application/json")
+	res, err := h.Do(req)
+	if err != nil {
+		log.Errorf(c, "Error sending notification: %v", err)
+		return
+	}
+
+	if res.StatusCode >= 300 || res.StatusCode < 200 {
+		log.Errorf(c, "HTTP error delivering notification: %v", httputil.HTTPError(res))
+	}
+
 }
 
 func handleAutotown(w http.ResponseWriter, r *http.Request) {

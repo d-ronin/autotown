@@ -53,8 +53,6 @@ Please specify a file, or a set of files:<br>
                 fieldName = 'Mixer%dType' % (i)
 
                 if mixerSettings[mixerSettings._fields.index(fieldName)] == mixerSettings.ENUM_Mixer1Type['Disabled']:
-                    print "adapting %d" % (i)
-
                     mins[i-1] = 0
                     maxes[i-1] = 0
                     newts[i-1] = 0

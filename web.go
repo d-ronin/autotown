@@ -67,6 +67,7 @@ func init() {
 	http.Handle("/api/gitLabels", corsHandleFunc(handleGitLabels))
 	http.Handle("/api/tune", corsHandleFunc(handleTune))
 	http.Handle("/api/recentCrashes", corsHandleFunc(handleRecentCrashes))
+	http.Handle("/api/crash/", corsHandleFunc(handleCrash))
 	http.HandleFunc("/at/", handleAutotown)
 
 	http.HandleFunc("/r/entity/", handleEntityRedirect)
@@ -743,6 +744,29 @@ func handleRecentCrashes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mustEncode(c, w, res)
+}
+
+func handleCrash(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	cid := r.URL.Path[len("/api/crash/"):]
+
+	k, err := datastore.DecodeKey(cid)
+	if err != nil {
+		log.Errorf(c, "Error parsing crash key: %v", err)
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	crash := &CrashData{}
+	if err := datastore.Get(c, k, crash); err != nil {
+		log.Errorf(c, "Error grabbing crash: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	crash.Key = k
+
+	mustEncode(c, w, crash)
 }
 
 type asyncUsageData struct {

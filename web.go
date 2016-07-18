@@ -71,6 +71,7 @@ func init() {
 	http.Handle("/api/tune", corsHandleFunc(handleTune))
 	http.Handle("/api/recentCrashes", corsHandleFunc(handleRecentCrashes))
 	http.Handle("/api/crash/", corsHandleFunc(handleCrash))
+	http.Handle("/api/crashtrace/", corsHandleFunc(handleTrace))
 	http.HandleFunc("/at/", handleAutotown)
 
 	http.HandleFunc("/r/entity/", handleEntityRedirect)
@@ -799,6 +800,61 @@ func handleCrash(w http.ResponseWriter, r *http.Request) {
 	mustEncode(c, w, crash)
 }
 
+func handleTrace(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	cid := r.URL.Path[len("/api/crashtrace/"):]
+
+	k, err := datastore.DecodeKey(cid)
+	if err != nil {
+		log.Errorf(c, "Error parsing crash key: %v", err)
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	crash := &CrashData{}
+	if err := datastore.Get(c, k, crash); err != nil {
+		log.Errorf(c, "Error grabbing crash: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	fint, ok := crash.properties["trace"]
+	if !ok {
+		http.Error(w, "no trace found", 404)
+		return
+	}
+	filename := fint.(string)
+
+	client, err := storage.NewClient(c)
+	if err != nil {
+		log.Warningf(c, "Error getting cloud store interface:  %v", err)
+		http.Error(w, "error talking to cloud store", 500)
+		return
+
+	}
+	defer client.Close()
+
+	var bucketName string
+	if bucketName, err = file.DefaultBucketName(c); err != nil {
+		log.Errorf(c, "failed to get default GCS bucket name: %v", err)
+		http.Error(w, "error opening storage bucket", 500)
+		return
+	}
+
+	bucket := client.Bucket(bucketName)
+	rc, err := bucket.Object(filename).NewReader(c)
+	if err != nil {
+		log.Errorf(c, "Error opening %v: %v", filename, err)
+		http.Error(w, "error opening trace file", 500)
+		return
+	}
+	defer rc.Close()
+
+	w.Header().Set("content-type", "text/plain")
+	io.Copy(w, rc)
+}
+
 func handleStoreTrace(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
@@ -833,6 +889,7 @@ func handleStoreTrace(w http.ResponseWriter, r *http.Request) {
 	var bucketName string
 	if bucketName, err = file.DefaultBucketName(c); err != nil {
 		log.Errorf(c, "failed to get default GCS bucket name: %v", err)
+		http.Error(w, "error opening storage bucket", 500)
 		return
 	}
 

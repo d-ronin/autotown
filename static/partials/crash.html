@@ -1,0 +1,42 @@
+<h2>Crash Details</h2>
+
+<table>
+  <tr>
+    <th>Where</th>
+    <td>
+      <a href="https://www.google.com/maps/@{{crash.lat}},{{crash.lon}},12z">{{crash.city}},
+        {{crash.region}} {{crash.country}}</a>
+    </td>
+  </tr>
+  <tr>
+    <th>When</th>
+    <td>{{crash.timestamp}} ({{crash.timestamp|relDate}})</td>
+  </tr>
+  <tr>
+    <th>OS</th>
+    <td>{{crash.os}} / {{crash.buildInfo}}</td>
+  </tr>
+  <tr>
+    <th>Version</th>
+    <td>
+      <a href="https://github.com/d-ronin/dRonin/commit/{{crash.gitCommit}}">{{crash.gitCommit}}</a>
+      <span ng-show="crash.gitTag"> tag: {{crash.gitTag}}</span>
+      <span ng-show="crash.gitBranch"> branch: {{crash.gitBranch}}</span>
+      <span ng-show="crash.dirty"> (dirty tree)</span>
+    </td>
+  </tr>
+</table>
+
+<h2>User Comment</h2>
+
+<p>{{crash.comment}}</p>
+
+<h2 ng-show="trace">Stack Trace</h2>
+
+<pre ng-show="trace">{{trace}}</pre>
+
+<h2 ng-show="crash.file">Full Dump</h2>
+
+<p ng-show="crash.file">
+  <a href="{{crashServer}}{{crash.file}}">{{crash.file}}</a>
+</p>

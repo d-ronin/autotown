@@ -41,6 +41,10 @@ autotown = angular.module('autotown', ['ngRoute']).
                     }).
                     when('/crash/', {
                         templateUrl: '/static/partials/crashes.html',
+                        controller: 'CrashesCtrl'
+                    }).
+                    when('/crash/:dummy', {
+                        templateUrl: '/static/partials/crash.html',
                         controller: 'CrashCtrl'
                     }).
                     otherwise({
@@ -135,10 +139,21 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                      })
                                  }]);
 
-autotown.controller('CrashCtrl', ['$scope', '$http',
+autotown.controller('CrashesCtrl', ['$scope', '$http',
                                   function($scope, $http) {
                                       $http.get("//dronin-autotown.appspot.com/api/recentCrashes").success(function(data) {
                                           $scope.recentCrashes = data;
                                           $scope.crashServer = 'https://console.developers.google.com/m/cloudstorage/b/dronin-autotown.appspot.com/o/';
                                       });
                                   }]);
+
+function crashCtrl($scope, $http, $routeParams) {
+    $http.get('//dronin-autotown.appspot.com/api/crash/' + $routeParams.dummy).success(function(data) {
+        $scope.crash = data;
+        $scope.crashServer = 'https://console.developers.google.com/m/cloudstorage/b/dronin-autotown.appspot.com/o/';    });
+    $http.get('//dronin-autotown.appspot.com/api/crashtrace/' + $routeParams.dummy).success(function(data) {
+        $scope.trace = data;
+    });
+}
+
+autotown.controller('CrashCtrl', ['$scope', '$http', '$routeParams', crashCtrl]);

@@ -8,9 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"go4.org/syncutil"
-
 	"golang.org/x/net/context"
+	"golang.org/x/sync/errgroup"
 
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
@@ -95,7 +94,7 @@ func queueMore(c context.Context) bool {
 }
 
 func queueMany(c context.Context, queue string, tasks []*taskqueue.Task) error {
-	g := syncutil.Group{}
+	g, _ := errgroup.WithContext(c)
 	for len(tasks) > 0 {
 		some := tasks
 		if len(tasks) > 100 {
@@ -110,7 +109,7 @@ func queueMany(c context.Context, queue string, tasks []*taskqueue.Task) error {
 			return err
 		})
 	}
-	return g.Err()
+	return g.Wait()
 }
 
 // Params:
@@ -282,7 +281,7 @@ func handleProcessUsage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	grp := syncutil.Group{}
+	grp, _ := errgroup.WithContext(c)
 	var tasks []*taskqueue.Task
 	total := 0
 	for _, st := range stats {
@@ -342,7 +341,7 @@ func handleProcessUsage(w http.ResponseWriter, r *http.Request) {
 		log.Debugf(c, "Added a batch of %v", len(tasks))
 	}
 
-	if err := grp.Err(); err != nil {
+	if err := grp.Wait(); err != nil {
 		log.Errorf(c, "Error queueing stuff: %v", err)
 		http.Error(w, "error queueing", 500)
 		return

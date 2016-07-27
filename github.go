@@ -12,10 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"go4.org/syncutil"
+
 	"golang.org/x/net/context"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/dustin/httputil"
-	"go4.org/syncutil"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
@@ -177,7 +179,7 @@ func updateGithub(c context.Context) ([]githubRef, error) {
 	var pulls []githubPull
 
 	start := time.Now()
-	g := syncutil.Group{}
+	g, _ := errgroup.WithContext(c)
 	g.Go(func() error { return fetchDecode(c, tagURL, &tags) })
 	g.Go(func() error { return fetchDecode(c, branchesURL, &branches) })
 	g.Go(func() error {
@@ -187,7 +189,7 @@ func updateGithub(c context.Context) ([]githubRef, error) {
 		return nil
 	})
 
-	if err := g.Err(); err != nil {
+	if err := g.Wait(); err != nil {
 		return nil, err
 	}
 
@@ -273,7 +275,7 @@ func handleGitLabels(w http.ResponseWriter, r *http.Request) {
 	mustEncode(c, w, refs)
 }
 
-func fetchBlob(c context.Context, g *syncutil.Group, h, filename string) (*gitBlob, error) {
+func fetchBlob(c context.Context, g *errgroup.Group, h, filename string) (*gitBlob, error) {
 	k := "blob@" + h
 	blob := &gitBlob{}
 	if err := gzCacheGet(c, k, blob); err == nil {
@@ -308,7 +310,7 @@ considered_harmful:
 	return blob, nil
 }
 
-func fetchTree(c context.Context, g *syncutil.Group, h string) ([]gitTreeEntry, error) {
+func fetchTree(c context.Context, g *errgroup.Group, h string) ([]gitTreeEntry, error) {
 	k := "tree@" + h
 	trees := []gitTreeEntry{}
 	if err := gzCacheGet(c, k, &trees); err == nil {
@@ -370,7 +372,7 @@ func gitArchive(c context.Context, h string, w io.Writer) error {
 	c, cancel := context.WithCancel(c)
 	defer cancel()
 
-	g := &syncutil.Group{}
+	g, _ := errgroup.WithContext(c)
 
 	commit := &gitCommit{}
 	if err := fetchDecodeCached(c, "commit@"+h, 0, hashURL+h, commit); err != nil {
@@ -428,7 +430,7 @@ func gitArchive(c context.Context, h string, w io.Writer) error {
 		}
 	}
 
-	return g.Err()
+	return g.Wait()
 }
 
 func handleUAVOs(w http.ResponseWriter, r *http.Request) {

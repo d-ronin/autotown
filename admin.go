@@ -11,8 +11,7 @@ import (
 	"time"
 
 	"golang.org/x/net/context"
-
-	"go4.org/syncutil"
+	"golang.org/x/sync/errgroup"
 
 	"crypto/sha256"
 
@@ -99,7 +98,7 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 
 	total := 0
 
-	grp := syncutil.Group{}
+	grp, _ := errgroup.WithContext(c)
 	for t := q.Run(c); ; {
 		var st UsageStat
 		_, err := t.Next(&st)
@@ -166,7 +165,7 @@ func handleUpdateControllers(w http.ResponseWriter, r *http.Request) {
 		log.Infof(c, "Added a batch of %v", len(tasks))
 	}
 
-	if err := grp.Err(); err != nil {
+	if err := grp.Wait(); err != nil {
 		log.Errorf(c, "Error queueing stuff: %v", err)
 		http.Error(w, "error queueing", 500)
 		return
@@ -319,7 +318,7 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 		toUpdate = append(toUpdate, v)
 	}
 
-	g := syncutil.Group{}
+	g, _ := errgroup.WithContext(c)
 	if len(keys) > 0 {
 		g.Go(func() error {
 			log.Infof(c, "Updating %v items", len(keys))
@@ -333,7 +332,7 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 		log.Infof(c, "New board: %v", newBoard)
 	}
 
-	return g.Err()
+	return g.Wait()
 }
 
 func abbrevOS(s string) string {

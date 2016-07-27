@@ -22,11 +22,11 @@ import (
 	"time"
 
 	"golang.org/x/net/context"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/dustin/go-jsonpointer"
 	"github.com/dustin/httputil"
 	"github.com/rs/cors"
-	"go4.org/syncutil"
 
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
@@ -155,7 +155,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	grp := syncutil.Group{}
+	grp, _ := errgroup.WithContext(c)
 
 	k, err := datastore.Put(c, datastore.NewIncompleteKey(c, "TuneResults", nil), &t)
 	if err != nil {
@@ -169,7 +169,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 			return err
 		})
 
-		if err := grp.Err(); err != nil {
+		if err := grp.Wait(); err != nil {
 			log.Infof(c, "Error async processing tune: %v", err)
 			http.Error(w, err.Error(), 500)
 			return
@@ -182,7 +182,7 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 	tuneURL := "https://dronin-autotown.appspot.com/at/tune/" + k.Encode()
 	grp.Go(func() error { return cacheTune(c, &t) })
 
-	if err := grp.Err(); err != nil {
+	if err := grp.Wait(); err != nil {
 		log.Infof(c, "Error caching tune: %v", err)
 	}
 
@@ -656,7 +656,7 @@ func cacheTune(c context.Context, t *TuneResults) error {
 	t.Orig = (*json.RawMessage)(&t.Data)
 	t.Experimental = computeIceeTune(c, t.Data)
 
-	grp := syncutil.Group{}
+	grp, _ := errgroup.WithContext(c)
 
 	grp.Go(func() error {
 		return memcache.JSON.Set(c, &memcache.Item{
@@ -670,7 +670,7 @@ func cacheTune(c context.Context, t *TuneResults) error {
 		return nil
 	})
 
-	return grp.Err()
+	return grp.Wait()
 }
 
 func handleTune(w http.ResponseWriter, r *http.Request) {
@@ -1054,7 +1054,7 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	g := syncutil.Group{}
+	g, _ := errgroup.WithContext(c)
 
 	g.Go(func() error {
 		return asyncRollup(c, &d)
@@ -1133,7 +1133,7 @@ func handleAsyncUsageStats(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 
-	for _, err := range g.Errs() {
+	if err := g.Wait(); err != nil {
 		log.Warningf(c, "Error with storage stuff: %v", err)
 	}
 }
@@ -1175,7 +1175,7 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 
 	var gitl []githubRef
 
-	g := syncutil.Group{}
+	g, _ := errgroup.WithContext(c)
 	g.Go(func() error {
 		var err error
 		gitl, err = gitLabels(c)

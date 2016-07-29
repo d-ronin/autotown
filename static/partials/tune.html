@@ -95,21 +95,21 @@
   </thead>
   <tbody>
     <tr><th>Roll</th>
-      <td>{{tune.Orig.identification.roll.bias}}</td>
-      <td>{{tune.Orig.identification.roll.gain}}</td>
-      <td>{{tune.Orig.identification.roll.noise}}</td>
+      <td>{{tune.Orig.identification.roll.bias | number:5}}</td>
+      <td>{{tune.Orig.identification.roll.gain | number:5}}</td>
+      <td>{{tune.Orig.identification.roll.noise | number:5}}</td>
     </tr>
     <tr><th>Pitch</th>
-      <td>{{tune.Orig.identification.pitch.bias}}</td>
-      <td>{{tune.Orig.identification.pitch.gain}}</td>
-      <td>{{tune.Orig.identification.pitch.noise}}</td>
+      <td>{{tune.Orig.identification.pitch.bias | number:5}}</td>
+      <td>{{tune.Orig.identification.pitch.gain | number:5}}</td>
+      <td>{{tune.Orig.identification.pitch.noise | number:5}}</td>
     </tr>
     <tr><th>Yaw</th>
-      <td>{{tune.Orig.identification.yaw.bias}}</td>
+      <td>{{tune.Orig.identification.yaw.bias | number:5}}</td>
       <td ng-class="{'bogus': tune.Orig.identification.yaw.gain < 6.3}">
-        {{tune.Orig.identification.yaw.gain}}
+        {{tune.Orig.identification.yaw.gain | number:5}}
       </td>
-      <td>{{tune.Orig.identification.yaw.noise}}</td>
+      <td>{{tune.Orig.identification.yaw.noise | number:5}}</td>
     </tr>
   </tbody>
 </table>
@@ -134,13 +134,19 @@
   </div>
 </div>
 
-<p>Damping: {{tune.Orig.tuning.parameters.damping}}.
-  Noise sensitivity: {{tune.Orig.tuning.parameters.noiseSensitivity}}.
+<p>Damping: {{tune.Orig.tuning.parameters.damping | number:5}}.
+  Noise sensitivity: {{tune.Orig.tuning.parameters.noiseSensitivity | number:5}}.
 </p>
 
 <table>
-  <tr><th>Natural Frequency</th><td>{{tune.Orig.tuning.computed.naturalFrequency}}</td></tr>
-  <tr><th>Derivative Cutoff</th><td>{{tune.Orig.tuning.computed.derivativeCutoff}}</td></tr>
+  <tr>
+    <th>Natural Frequency</th>
+    <td>{{tune.Orig.tuning.computed.naturalFrequency | number:5}}</td>
+  </tr>
+  <tr>
+    <th>Derivative Cutoff</th>
+    <td>{{tune.Orig.tuning.computed.derivativeCutoff | number:5}}</td>
+  </tr>
 </table>
 
 <h4>Gains</h4>

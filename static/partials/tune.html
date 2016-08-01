@@ -70,7 +70,10 @@
     <tr><th>MPU Rate</th><td>{{hw.mpurate}}</td></tr>
     <tr><th>Gyro LPF</th><td>{{hw.gyrolpf}}</td></tr>
     <tr><th>Accel LPF</th><td>{{hw.accellpf}}</td></tr>
-    <tr ng-show="bterm"><th>In/Out Curve Fit</th><td>{{bterm | number}}</td></th>
+    <tr ng-show="bterm">
+      <th>In/Out Curve Fit</th>
+      <td title="{{bterm}}">{{bterm | number}}</td>
+    </tr>
 </table>
 
 <h3>Identification</h3>
@@ -83,10 +86,18 @@
   </tr>
   <tr ng-show="tune.Orig.rawSettings.SystemIdent.fields.HoverThrottle">
     <th>Hover</th>
-    <td>{{tune.Orig.rawSettings.SystemIdent.fields.HoverThrottle * 100 | number:0}}%</td>
+    <td title="{{tune.Orig.rawSettings.SystemIdent.fields.HoverThrottle}}">
+      {{tune.Orig.rawSettings.SystemIdent.fields.HoverThrottle * 100 | number:0}}%
+    </td>
   </tr>
-  <tr><th>Predicts</th><td>{{tune.Orig.rawSettings.SystemIdent.fields.NumAfPredicts}}</td></tr>
-  <tr><th>Spilled</th><td>{{tune.Orig.rawSettings.SystemIdent.fields.NumSpilledPts}}</td></tr>
+  <tr>
+    <th>Predicts</th>
+    <td>{{tune.Orig.rawSettings.SystemIdent.fields.NumAfPredicts}}</td>
+  </tr>
+  <tr>
+    <th>Spilled</th>
+    <td>{{tune.Orig.rawSettings.SystemIdent.fields.NumSpilledPts}}</td>
+  </tr>
 </table>
 
 <table>
@@ -95,21 +106,38 @@
   </thead>
   <tbody>
     <tr><th>Roll</th>
-      <td>{{tune.Orig.identification.roll.bias | number:5}}</td>
-      <td>{{tune.Orig.identification.roll.gain | number:5}}</td>
-      <td>{{tune.Orig.identification.roll.noise | number:5}}</td>
+      <td title="{{tune.Orig.identification.roll.bias}}">
+        {{tune.Orig.identification.roll.bias | number:5}}
+      </td>
+      <td title="{{tune.Orig.identification.roll.gain}}">
+        {{tune.Orig.identification.roll.gain | number:5}}
+      </td>
+      <td title="{{tune.Orig.identification.roll.noise}}">
+        {{tune.Orig.identification.roll.noise | number:5}}
+      </td>
     </tr>
     <tr><th>Pitch</th>
-      <td>{{tune.Orig.identification.pitch.bias | number:5}}</td>
-      <td>{{tune.Orig.identification.pitch.gain | number:5}}</td>
-      <td>{{tune.Orig.identification.pitch.noise | number:5}}</td>
+      <td title="{{tune.Orig.identification.pitch.bias}}">
+        {{tune.Orig.identification.pitch.bias | number:5}}
+      </td>
+      <td title="{{tune.Orig.identification.pitch.gain}}">
+        {{tune.Orig.identification.pitch.gain | number:5}}
+      </td>
+      <td title="{{tune.Orig.identification.pitch.noise}}">
+        {{tune.Orig.identification.pitch.noise | number:5}}
+      </td>
     </tr>
     <tr><th>Yaw</th>
-      <td>{{tune.Orig.identification.yaw.bias | number:5}}</td>
-      <td ng-class="{'bogus': tune.Orig.identification.yaw.gain < 6.3}">
+      <td title="{{tune.Orig.identification.yaw.bias}}">
+        {{tune.Orig.identification.yaw.bias | number:5}}
+      </td>
+      <td title="{{tune.Orig.identification.yaw.gain}}"
+          ng-class="{'bogus': tune.Orig.identification.yaw.gain < 6.3}">
         {{tune.Orig.identification.yaw.gain | number:5}}
       </td>
-      <td>{{tune.Orig.identification.yaw.noise | number:5}}</td>
+      <td title="{{tune.Orig.identification.yaw.noise | number:5}}">
+        {{tune.Orig.identification.yaw.noise | number:5}}
+      </td>
     </tr>
   </tbody>
 </table>
@@ -134,18 +162,27 @@
   </div>
 </div>
 
-<p>Damping: {{tune.Orig.tuning.parameters.damping | number:5}}.
-  Noise sensitivity: {{tune.Orig.tuning.parameters.noiseSensitivity | number:5}}.
+<p>
+  Damping:
+  <span title="{{tune.Orig.tuning.parameters.damping}}">
+    {{tune.Orig.tuning.parameters.damping | number:5}}</span>.
+  Noise sensitivity:
+  <span title="{{tune.Orig.tuning.parameters.noiseSensitivity}}">
+    {{tune.Orig.tuning.parameters.noiseSensitivity | number:5}}</span>.
 </p>
 
 <table>
   <tr>
     <th>Natural Frequency</th>
-    <td>{{tune.Orig.tuning.computed.naturalFrequency | number:5}}</td>
+    <td title="{{tune.Orig.tuning.computed.naturalFrequency}}">
+      {{tune.Orig.tuning.computed.naturalFrequency | number:5}}
+    </td>
   </tr>
   <tr>
     <th>Derivative Cutoff</th>
-    <td>{{tune.Orig.tuning.computed.derivativeCutoff | number:5}}</td>
+    <td title="{{tune.Orig.tuning.computed.derivativeCutoff}}">
+      {{tune.Orig.tuning.computed.derivativeCutoff | number:5}}
+    </td>
   </tr>
 </table>
 
@@ -173,21 +210,42 @@
   <tbody>
     <tr>
       <th>Proportional</th>
-      <td>{{tune.Orig.tuning.computed.gains.roll.kp | number:5}}</td>
-      <td>{{tune.Orig.tuning.computed.gains.pitch.kp | number:5}}</td>
-      <td ng-class="{experimental: tune.experimental}">{{tune.experimental.yp | number:5}}</td>
+      <td title="{{tune.Orig.tuning.computed.gains.roll.kp}}">
+        {{tune.Orig.tuning.computed.gains.roll.kp | number:5}}
+      </td>
+      <td title="{{tune.Orig.tuning.computed.gains.pitch.kp}}">
+        {{tune.Orig.tuning.computed.gains.pitch.kp | number:5}}
+      </td>
+      <td ng-class="{experimental: tune.experimental}"
+          title="{{tune.experimental.yp}}">
+        {{tune.experimental.yp | number:5}}
+      </td>
     </tr>
     <tr>
       <th>Integral</th>
-      <td>{{tune.Orig.tuning.computed.gains.roll.ki | number:5}}</td>
-      <td>{{tune.Orig.tuning.computed.gains.pitch.ki | number:5}}</td>
-      <td ng-class="{experimental: tune.experimental}">{{tune.experimental.yi | number:5}}</td>
+      <td title="{{tune.Orig.tuning.computed.gains.roll.ki}}">
+        {{tune.Orig.tuning.computed.gains.roll.ki | number:5}}
+      </td>
+      <td title="{{tune.Orig.tuning.computed.gains.pitch.ki}}">
+        {{tune.Orig.tuning.computed.gains.pitch.ki | number:5}}
+      </td>
+      <td ng-class="{experimental: tune.experimental}"
+          title="{{tune.experimental.yi}}">
+        {{tune.experimental.yi | number:5}}
+      </td>
     </tr>
     <tr>
       <th>Derivative</th>
-      <td>{{tune.Orig.tuning.computed.gains.roll.kd | number:6}}</td>
-      <td>{{tune.Orig.tuning.computed.gains.pitch.kd | number:6}}</td>
-      <td ng-class="{experimental: tune.experimental}">{{tune.experimental.yd | number:6}}</td>
+      <td title="{{tune.Orig.tuning.computed.gains.roll.kd}}">
+        {{tune.Orig.tuning.computed.gains.roll.kd | number:6}}
+      </td>
+      <td title="{{tune.Orig.tuning.computed.gains.pitch.kd}}">
+        {{tune.Orig.tuning.computed.gains.pitch.kd | number:6}}
+      </td>
+      <td ng-class="{experimental: tune.experimental}"
+          title="{{tune.experimental.yd}}">
+        {{tune.experimental.yd | number:6}}
+      </td>
     </tr>
   </tbody>
 </table>
@@ -201,14 +259,22 @@
   <tbody>
     <tr>
       <td>Proportional</td>
-      <td>{{tune.Orig.tuning.computed.gains.outer.kp | number:5}}</td>
-      <td>{{tune.Orig.tuning.computed.gains.outer.kp| number:5}}</td>
+      <td title="{{tune.Orig.tuning.computed.gains.outer.kp}}">
+        {{tune.Orig.tuning.computed.gains.outer.kp | number:5}}
+      </td>
+      <td title="{{tune.Orig.tuning.computed.gains.outer.kp}}">
+        {{tune.Orig.tuning.computed.gains.outer.kp| number:5}}
+      </td>
       <td>N/A</td>
     </tr>
     <tr>
       <td>Integral</td>
-      <td ng-class="{experimental: tune.experimental}">{{tune.experimental.oki | number:5}}</td>
-      <td ng-class="{experimental: tune.experimental}">{{tune.experimental.oki | number:5}}</td>
+      <td ng-class="{experimental: tune.experimental}" title="{{tune.experimental.oki}}">
+        {{tune.experimental.oki | number:5}}
+      </td>
+      <td ng-class="{experimental: tune.experimental}" title="{{tune.experimental.oki}}">
+        {{tune.experimental.oki | number:5}}
+      </td>
       <td>N/A</td>
     </tr>
   </tbody>

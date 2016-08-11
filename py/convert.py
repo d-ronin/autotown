@@ -32,6 +32,7 @@ Please specify a file, or a set of files:<br>
             logging.exception('Decompression error on user input')
             datafile = self.request.get('datafile')
 
+        logging.info("Incoming git hash: %s", self.request.get('githash'))
         imported = LogFSImport(self.request.get('githash'), datafile)
 
         # Super naive hack implementation of d-ronin/dRonin#1019; if a

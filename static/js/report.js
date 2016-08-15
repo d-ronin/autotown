@@ -359,7 +359,7 @@ function grokCountries(data) {
     });
 }
 
-function drawWeeklyAdditions(data, dest, colors, options, accessor) {
+function drawAdditionsRate(data, dest, colors, options, accessor) {
     var timeline = {};
     options.forEach(function(i) { timeline[i] = {}; });
     var others = {};
@@ -387,11 +387,11 @@ function drawWeeklyAdditions(data, dest, colors, options, accessor) {
         });
         values.sort(function (a, b) {return d3.ascending(a.x, b.x); });
         // Reduce value set to sum of seven day windows.
-        var v7 = [];
-        for (var i = 7; i<values.length-1; i++) {
-            v7.push({x: values[i].x, y: d3.sum(values.slice(i-7, i), function(d) { return d.y; })});
+        var v30 = [];
+        for (var i = 30; i<values.length-1; i++) {
+            v30.push({x: values[i].x, y: d3.sum(values.slice(i-30, i), function(d) { return d.y; })});
         }
-        tldata.push({key: proc, values: v7});
+        tldata.push({key: proc, values: v30});
     });
 
     nv.addGraph(function() {
@@ -455,10 +455,10 @@ function drawPlots() {
                 return;
             }
             drawCountryMap(results[0], results[1]);
-            drawWeeklyAdditions(results[1], '#weekly svg', boardColors,
-                                ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
-                                 "quanton", "Revo", "Sparky", "Sparky2", "Other"],
-                                function(d) { return d.name; });
+            drawAdditionsRate(results[1], '#monthly svg', boardColors,
+                              ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
+                               "quanton", "Revo", "Sparky", "Sparky2", "Other"],
+                              function(d) { return d.name; });
             /*
             drawWeeklyAdditions(results[1], '#weekly svg', procColors,
                                 ['F1', 'F3', 'F4', 'Other'],

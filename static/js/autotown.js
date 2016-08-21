@@ -151,9 +151,46 @@ function crashCtrl($scope, $http, $routeParams) {
     $http.get('//dronin-autotown.appspot.com/api/crash/' + $routeParams.dummy).success(function(data) {
         $scope.crash = data;
         $scope.crashServer = 'https://console.developers.google.com/m/cloudstorage/b/dronin-autotown.appspot.com/o/';    });
-    $http.get('//dronin-autotown.appspot.com/api/crashtrace/' + $routeParams.dummy).success(function(data) {
-        $scope.trace = data;
+
+    $http.get('//dronin-autotown.appspot.com/api/crashtrace/' + $routeParams.dummy).then(function successCallback(response) {
+      $scope.sourcecode = {}
+      $scope.trace = response.data;
+
+      // fetch gcs source code async
+      angular.forEach(response.data.sources, function(relpath) {
+        var fetchurl = 'https://api.github.com/repos/d-ronin/dRonin/contents/' + relpath + '?ref=' + response.data.gitrevision;
+        $http.get(
+          fetchurl,
+          {headers: {'Accept': 'application/vnd.github.VERSION.raw'}}
+        ).then(function successCallback(response) {
+          $scope.sourcecode[relpath] = response.data;
+        }, function errorCallback(response) {
+          $scope.sourcecode[relpath] = 'Failed to fetch data: ' + response.status + ' ' + response.statusText;
+        });
+      });
     });
 }
+
+autotown.directive('ngPrism',['$interpolate', function ($interpolate) {
+  "use strict";
+  return {
+    restrict: 'E',
+    template: '<pre><code ng-transclude></code></pre>',
+    replace: true,
+    transclude: true,
+    link: function (scope, elm) {
+      var tmp = $interpolate(elm.find('code').text())(scope);
+      elm.find('code').text(tmp);
+      elm.attr('data-line', scope.frame.line);
+      Prism.highlightElement(elm.find('code')[0], false);
+      if (elm.find('div.line-highlight').length < 1)
+        return;
+      // scroll to highlighted line
+      elm.animate({
+          scrollTop: elm.find('.line-highlight').position().top - 4/5*elm.height()
+      }, 0);
+    }
+  };
+}]);
 
 autotown.controller('CrashCtrl', ['$scope', '$http', '$routeParams', crashCtrl]);

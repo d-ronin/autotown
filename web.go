@@ -851,7 +851,7 @@ func handleTrace(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rc.Close()
 
-	w.Header().Set("content-type", "text/plain")
+	w.Header().Set("content-type", rc.ContentType())
 	io.Copy(w, rc)
 }
 
@@ -875,7 +875,7 @@ func handleStoreTrace(w http.ResponseWriter, r *http.Request) {
 	}
 	crash.Key = k
 
-	filename := crash.properties["file"].(string) + ".txt"
+	filename := crash.properties["file"].(string) + ".json"
 
 	client, err := storage.NewClient(c)
 	if err != nil {
@@ -896,7 +896,7 @@ func handleStoreTrace(w http.ResponseWriter, r *http.Request) {
 	bucket := client.Bucket(bucketName)
 
 	wc := bucket.Object(filename).NewWriter(c)
-	wc.ContentType = "text/plain"
+	wc.ContentType = "application/json"
 
 	if _, err := io.Copy(wc, r.Body); err != nil {
 		log.Warningf(c, "Error writing stuff to blob store:  %v", err)

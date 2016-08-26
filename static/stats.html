@@ -85,6 +85,12 @@
         width: 800px;
       }
 
+      #monthlyothers {
+        margin: 2em;
+        font-size: smaller;
+        color: #444;
+      }
+
       #countrymap svg .land {
         fill: #ddd;
       }
@@ -104,7 +110,11 @@
   <body>
     <div id="charts">
       <div id="boards"><h2>Boards (<span id="totalboards">0</span> total)</h2><svg></svg></div>
-      <div id="monthly"><h2>Monthly Growth</h2><svg></svg></div>
+      <div id="monthly">
+        <h2>Monthly Growth</h2>
+        <svg></svg>
+      </div>
+      <div id="monthlyothers"></div>
       <div id="oproc">
         <div id="procs"><h2>Processors</h2><svg></svg></div>
         <div id="oses"><h2>OSes</h2><svg></svg></div>

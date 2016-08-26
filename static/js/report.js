@@ -378,7 +378,11 @@ function drawAdditionsRate(data, dest, colors, options, accessor) {
 
         timeline[t][+d]++;
     });
-    console.log("Others", others);
+    var ot = [];
+    for (var k in others) {
+        ot.push(k + ": " + others[k]);
+    }
+    d3.select("#monthlyothers").text("Others: " + ot.join(", "));
     var tldata = [];
     options.forEach(function(proc) {
         var values = [];
@@ -460,9 +464,9 @@ function drawPlots() {
                                "quanton", "Revo", "Sparky", "Sparky2", "Other"],
                               function(d) { return d.name; });
             /*
-            drawWeeklyAdditions(results[1], '#weekly svg', procColors,
-                                ['F1', 'F3', 'F4', 'Other'],
-                                function(d) { return processorTypes[d.name]; });
+            drawAdditionsRate(results[1], '#monthlyprocs svg', procColors,
+                              ['F1', 'F3', 'F4', 'Other'],
+                              function(d) { return processorTypes[d.name]; });
             */
         });
 }

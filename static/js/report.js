@@ -359,6 +359,10 @@ function grokCountries(data) {
     });
 }
 
+function nocase(a, b) {
+    return a.toLowerCase().localeCompare(b.toLowerCase());
+}
+
 function drawAdditionsRate(data, dest, colors, options, accessor) {
     var timeline = {};
     options.forEach(function(i) { timeline[i] = {}; });
@@ -378,11 +382,8 @@ function drawAdditionsRate(data, dest, colors, options, accessor) {
 
         timeline[t][+d]++;
     });
-    var ot = [];
-    for (var k in others) {
-        ot.push(k + ": " + others[k]);
-    }
-    d3.select("#monthlyothers").text("Others: " + ot.join(", "));
+    d3.select("#monthlyothers").text("Not shown: " + d3.keys(others).sort(nocase).join(", "));
+
     var tldata = [];
     options.forEach(function(proc) {
         var values = [];

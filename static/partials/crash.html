@@ -36,13 +36,13 @@
 <h2 ng-show="trace">Stack Trace</h2>
 
 <div ng-show="trace" class="trace">
-  <div ng-repeat="(thread, frames) in trace.threads" class="thread" id="thread-{{thread}}">
-    <h2>Thread {{thread}}</h2>
-    <div ng-if="trace.crash.thread == thread" class="crashed">
+  <div ng-repeat="thread in trace.threads | orderBy:sortThreads" class="thread" id="thread-{{thread.thread}}">
+    <h2>Thread {{thread.thread}}</h2>
+    <div ng-if="trace.crash.thread == thread.thread" class="crashed">
       <h3>Crashed!</h3>
       <p>Reason: {{trace.crash.reason}}<br />Address: 0x{{trace.crash.address.toString(16)}}</p>
     </div>
-    <div ng-repeat="frame in frames" class="frame" id="frame-{{frame.frame}}">
+    <div ng-repeat="frame in thread.frames" class="frame" id="frame-{{frame.frame}}">
       <h3>Frame {{frame.frame}}: {{frame.module}}<span ng-show="frame.function">!{{frame.function}}</span></h3>
       Instruction at <span ng-if="frame.sourcefile">{{frame.sourcefile}}:{{frame.line}}</span><span ng-if="!frame.sourcefile">{{frame.module}}<span ng-if="frame.function">!{{frame.function}}</span></span> + 0x{{frame.offset.toString(16)}}
       <ng-prism class="language-cpp" ng-if="sourcecode[frame.sourcefile]">{{ sourcecode[frame.sourcefile] }}</ng-prism>

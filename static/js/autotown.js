@@ -158,9 +158,23 @@ function crashCtrl($scope, $http, $routeParams) {
         $scope.crash = data;
         $scope.crashServer = 'https://console.developers.google.com/m/cloudstorage/b/dronin-autotown.appspot.com/o/';    });
 
+    $scope.sortThreads = function(thread) {
+      if ($scope.trace.crash.thread == thread.thread)
+        return -1;
+      else
+        return thread.thread;
+    }
+
     $http.get('//dronin-autotown.appspot.com/api/crashtrace/' + $routeParams.dummy).then(function successCallback(response) {
       $scope.sourcecode = {}
       $scope.trace = response.data;
+
+      // angular can't sort objects, even with a custom sort function, sigh
+      var threads = [];
+      angular.forEach($scope.trace.threads, function(val, key) {
+        this.push({'thread': key, 'frames': val})
+      }, threads);
+      $scope.trace.threads = threads;
 
       // fetch gcs source code async
       angular.forEach(response.data.sources, function(relpath) {

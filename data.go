@@ -93,7 +93,7 @@ func indexDoc(c context.Context, tune *TuneResults) error {
 		Observation:  jptrs(c, tune.Orig, "/userObservations"),
 		Tau:          tune.Tau,
 		Location:     appengine.GeoPoint{tune.Lat, tune.Lon},
-		LocationText: tune.City + " " + tune.Region + tune.Country,
+		LocationText: tune.City + " " + tune.Region + " " + tune.Country,
 		Weight:       jptrf(c, tune.Orig, "/vehicle/weight"),
 		Size:         jptrf(c, tune.Orig, "/vehicle/size"),
 		Cells:        jptrf(c, tune.Orig, "/vehicle/batteryCells"),

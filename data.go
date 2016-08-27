@@ -7,7 +7,12 @@ import (
 	"io"
 	"time"
 
+	"golang.org/x/net/context"
+
+	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/search"
 )
 
 var crashNameMap = map[string]string{
@@ -65,6 +70,45 @@ type timestampedTau struct {
 	Tau       float64        `json:"tau"`
 	Timestamp time.Time      `json:"timestamp"`
 	Key       *datastore.Key `json:"key"`
+}
+
+type TuneDoc struct {
+	Timestamp    time.Time          `search:"ts"`
+	Board        search.Atom        `search:"board"`
+	VehicleType  search.Atom        `search:"vtype"`
+	Observation  string             `search:"observation"`
+	Tau          float64            `search:"tau"`
+	Location     appengine.GeoPoint `search:"geo"`
+	LocationText string             `search:"location"`
+	Weight       float64            `search:"weight"`
+	Size         float64            `search:"size"`
+	Cells        float64            `search:"cells"`
+}
+
+func indexDoc(c context.Context, tune *TuneResults) error {
+	doc := &TuneDoc{
+		Timestamp:    tune.Timestamp,
+		Board:        search.Atom(tune.Board),
+		VehicleType:  search.Atom(jptrs(c, tune.Orig, "/vehicle/type")),
+		Observation:  jptrs(c, tune.Orig, "/userObservations"),
+		Tau:          tune.Tau,
+		Location:     appengine.GeoPoint{tune.Lat, tune.Lon},
+		LocationText: tune.City + " " + tune.Region + tune.Country,
+		Weight:       jptrf(c, tune.Orig, "/vehicle/weight"),
+		Size:         jptrf(c, tune.Orig, "/vehicle/size"),
+		Cells:        jptrf(c, tune.Orig, "/vehicle/batteryCells"),
+	}
+
+	log.Debugf(c, "Storing doc: %#v", doc)
+	index, err := search.Open("tunes")
+	if err != nil {
+		return err
+	}
+	_, err = index.Put(c, tune.Key.Encode(), doc)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type TuneResults struct {

@@ -216,6 +216,10 @@ func handleAsyncStoreTune(w http.ResponseWriter, r *http.Request) {
 		log.Warningf(c, "Error updating tune cache: %v", err)
 	}
 
+	if err := indexDoc(c, &t); err != nil {
+		log.Warningf(c, "Error indexing tune: %v", err)
+	}
+
 	w.WriteHeader(201)
 }
 

@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/dustin/go-jsonpointer"
 
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
@@ -31,6 +34,7 @@ func init() {
 	http.HandleFunc("/batch/destroy", batchDestroy)
 
 	http.HandleFunc("/batch/logkeys", handleLogKeys)
+	http.HandleFunc("/batch/indexTunes", handleIndexTunes)
 
 	http.HandleFunc("/batch/processUsage", handleProcessUsage)
 
@@ -260,6 +264,62 @@ func handleLogKeys(w http.ResponseWriter, r *http.Request) {
 	log.Debugf(c, "Got %v keys to process", len(keys))
 	for _, k := range keys {
 		log.Debugf(c, "%v", k)
+	}
+}
+
+func jptrs(c context.Context, m *json.RawMessage, path string) string {
+	var rv string
+	err := jsonpointer.FindDecode([]byte(*m), path, &rv)
+	if err != nil {
+		log.Warningf(c, "Error decoding %q from %s: %v", path, m, err)
+	}
+	return rv
+}
+
+func jptrf(c context.Context, m *json.RawMessage, path string) float64 {
+	var rv interface{}
+	err := jsonpointer.FindDecode([]byte(*m), path, &rv)
+	if err != nil {
+		log.Warningf(c, "Error decoding %q from %s: %v", path, m, err)
+	}
+	switch t := rv.(type) {
+	case float64:
+		return t
+	case string:
+		f, err := strconv.ParseFloat(t, 64)
+		if err != nil {
+			log.Warningf(c, "Error parsing string as float64: %v: %v", t, err)
+		}
+		return f
+	default:
+		log.Warningf(c, "Unexpected type for %q: %T", path, t)
+	}
+	return 0
+}
+
+func handleIndexTunes(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	keys, err := decodeKeys(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	for _, k := range keys {
+		tune, err := getTune(c, k)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		if err := tune.uncompress(); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		if err := indexDoc(c, tune); err != nil {
+			log.Errorf(c, "Error indexing: %v", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
 	}
 }
 

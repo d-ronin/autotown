@@ -91,7 +91,7 @@ func indexDoc(c context.Context, tune *TuneResults) error {
 		Board:        search.Atom(tune.Board),
 		VehicleType:  search.Atom(jptrs(c, tune.Orig, "/vehicle/type")),
 		Observation:  jptrs(c, tune.Orig, "/userObservations"),
-		Tau:          tune.Tau,
+		Tau:          tune.Tau * 1000,
 		Location:     appengine.GeoPoint{tune.Lat, tune.Lon},
 		LocationText: tune.City + " " + tune.Region + " " + tune.Country,
 		Weight:       jptrf(c, tune.Orig, "/vehicle/weight"),

@@ -1,5 +1,5 @@
 
-autotown = angular.module('autotown', ['ngRoute']).
+autotown = angular.module('autotown', ['ngRoute', 'datatables']).
     filter('relDate', function() {
         return function(dstr) {
             return moment(dstr).fromNow();
@@ -139,12 +139,18 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                      })
                                  }]);
 
-autotown.controller('CrashesCtrl', ['$scope', '$http',
-                                  function($scope, $http) {
-                                      $http.get("//dronin-autotown.appspot.com/api/recentCrashes").success(function(data) {
-                                          $scope.recentCrashes = data;
-                                          $scope.crashServer = 'https://console.developers.google.com/m/cloudstorage/b/dronin-autotown.appspot.com/o/';
-                                      });
+autotown.controller('CrashesCtrl', ['$scope', '$http', 'DTOptionsBuilder', 'DTColumnDefBuilder',
+                                  function($scope, $http, DTOptionsBuilder, DTColumnDefBuilder) {
+                                    $http.get("//dronin-autotown.appspot.com/api/recentCrashes").success(function(data) {
+                                      $scope.recentCrashes = data;
+                                      /* default sort by date */
+                                      $scope.dtOptions = DTOptionsBuilder.newOptions().withOption('order', [[0, 'desc']]);
+                                      /* need custom sorter for date */
+                                      $scope.dtColumnDefs = [
+                                        DTColumnDefBuilder.newColumnDef(0).withOption('orderDataType', 'date-relative')
+                                      ];
+                                      $scope.crashServer = 'https://console.developers.google.com/m/cloudstorage/b/dronin-autotown.appspot.com/o/';
+                                    });
                                   }]);
 
 function crashCtrl($scope, $http, $routeParams) {
@@ -152,7 +158,7 @@ function crashCtrl($scope, $http, $routeParams) {
         $scope.crash = data;
         $scope.crashServer = 'https://console.developers.google.com/m/cloudstorage/b/dronin-autotown.appspot.com/o/';    });
 
-    $http.get('//dronin-autotown.appspot.com/api/crashtrace/' + $routeParams.dummy).then(function successCallback(response) {
+    $http.get('/static/new.json').then(function successCallback(response) {
       $scope.sourcecode = {}
       $scope.trace = response.data;
 

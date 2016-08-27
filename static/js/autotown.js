@@ -158,7 +158,7 @@ function crashCtrl($scope, $http, $routeParams) {
         $scope.crash = data;
         $scope.crashServer = 'https://console.developers.google.com/m/cloudstorage/b/dronin-autotown.appspot.com/o/';    });
 
-    $http.get('/static/new.json').then(function successCallback(response) {
+    $http.get('//dronin-autotown.appspot.com/api/crashtrace/' + $routeParams.dummy).then(function successCallback(response) {
       $scope.sourcecode = {}
       $scope.trace = response.data;
 

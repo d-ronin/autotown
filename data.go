@@ -83,6 +83,7 @@ type TuneDoc struct {
 	Weight       float64            `search:"weight",json:"weight"`
 	Size         float64            `search:"size",json:"size"`
 	Cells        float64            `search:"cells",json:"cells"`
+	UUID         string             `search:"uuid",json:"uuid"`
 
 	ID string `search:-,json:"key"`
 }
@@ -99,6 +100,7 @@ func indexDoc(c context.Context, tune *TuneResults) error {
 		Weight:       jptrf(c, tune.Orig, "/vehicle/weight"),
 		Size:         jptrf(c, tune.Orig, "/vehicle/size"),
 		Cells:        jptrf(c, tune.Orig, "/vehicle/batteryCells"),
+		UUID:         tune.UUID,
 	}
 
 	log.Debugf(c, "Storing doc: %#v", doc)

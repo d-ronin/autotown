@@ -33,6 +33,7 @@ import (
 	"google.golang.org/appengine/file"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/memcache"
+	"google.golang.org/appengine/search"
 	"google.golang.org/appengine/taskqueue"
 	"google.golang.org/appengine/urlfetch"
 	"google.golang.org/cloud/storage"
@@ -72,6 +73,7 @@ func init() {
 	http.Handle("/api/recentCrashes", corsHandleFunc(handleRecentCrashes))
 	http.Handle("/api/crash/", corsHandleFunc(handleCrash))
 	http.Handle("/api/crashtrace/", corsHandleFunc(handleTrace))
+	http.Handle("/api/search", corsHandleFunc(handleSearch))
 	http.HandleFunc("/at/", handleAutotown)
 
 	http.HandleFunc("/r/entity/", handleEntityRedirect)
@@ -1310,4 +1312,43 @@ func handleUsageStatsDetails(w http.ResponseWriter, r *http.Request) {
 		))
 	}
 
+}
+
+func handleSearch(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	idxName := r.FormValue("i")
+	if idxName != "tunes" {
+		http.Error(w, "Invalid index name", 400)
+		return
+	}
+	index, err := search.Open(idxName)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	it := index.Search(c, r.FormValue("q"), &search.SearchOptions{
+		Sort: &search.SortOptions{
+			Expressions: []search.SortExpression{
+				{Expr: "ts"},
+			},
+		},
+	})
+
+	var rv []*TuneDoc
+	for {
+		var doc TuneDoc
+		id, err := it.Next(&doc)
+		if err == search.Done {
+			break
+		} else if err == nil {
+			doc.ID = id
+			rv = append(rv, &doc)
+		} else {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	}
+
+	mustEncode(c, w, rv)
 }

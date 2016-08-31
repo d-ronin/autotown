@@ -182,10 +182,13 @@ func handleStoreTune(w http.ResponseWriter, r *http.Request) {
 
 	t.Key = k
 	tuneURL := "https://dronin-autotown.appspot.com/at/tune/" + k.Encode()
+	t.Orig = &rawJson
 	grp.Go(func() error { return cacheTune(c, &t) })
 
+	grp.Go(func() error { return indexDoc(c, &t) })
+
 	if err := grp.Wait(); err != nil {
-		log.Infof(c, "Error caching tune: %v", err)
+		log.Infof(c, "Error caching and/or indexing tune: %v", err)
 	}
 
 	log.Debugf(c, "Stored tune with key %v", k.Encode())
@@ -656,10 +659,12 @@ func getTune(c context.Context, k *datastore.Key) (*TuneResults, error) {
 
 func cacheTune(c context.Context, t *TuneResults) error {
 	tunaKey := "/tune/" + t.Key.String()
-	if err := t.uncompress(); err != nil {
-		return err
+	if t.Orig == nil {
+		if err := t.uncompress(); err != nil {
+			return err
+		}
+		t.Orig = (*json.RawMessage)(&t.Data)
 	}
-	t.Orig = (*json.RawMessage)(&t.Data)
 	t.Experimental = computeIceeTune(c, t.Data)
 
 	grp, _ := errgroup.WithContext(c)

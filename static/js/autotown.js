@@ -170,6 +170,10 @@ function searchCtrl($scope, $http, $route, $routeParams) {
     $scope.search = function() {
         $routeParams.q = $scope.query;
         $route.updateParams($routeParams);
+        if ($routeParams.q == "") {
+            $scope.results = null;
+            return;
+        }
         $http.get("//dronin-autotown.appspot.com/api/search?i=tunes&q=" +
                   encodeURIComponent($routeParams.q)).success(function(data) {
                       $scope.results = data;

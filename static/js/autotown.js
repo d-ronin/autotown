@@ -35,6 +35,16 @@ autotown = angular.module('autotown', ['ngRoute', 'datatables']).
                         templateUrl: '/static/partials/home.html',
                         controller: 'IndexCtrl'
                     }).
+                    when('/tune/search/', {
+                        templateUrl: '/static/partials/search.html',
+                        controller: 'SearchCtrl',
+                        reloadOnSearch: false,
+                    }).
+                    when('/tune/search/:q', {
+                        templateUrl: '/static/partials/search.html',
+                        controller: 'SearchCtrl',
+                        reloadOnSearch: false,
+                    }).
                     when('/tune/:tuna', {
                         templateUrl: '/static/partials/tune.html',
                         controller: 'TuneCtrl'
@@ -152,6 +162,23 @@ autotown.controller('CrashesCtrl', ['$scope', '$http', 'DTOptionsBuilder', 'DTCo
                                       $scope.crashServer = 'https://console.developers.google.com/m/cloudstorage/b/dronin-autotown.appspot.com/o/';
                                     });
                                   }]);
+
+function searchCtrl($scope, $http, $route, $routeParams) {
+    $scope.isBogusTau = isBogusTau;
+    $scope.query = $routeParams.q || "board:brainre1 tau < 30 tau > 7";
+    $scope.results = [];
+    $scope.search = function() {
+        $routeParams.q = $scope.query;
+        $route.updateParams($routeParams);
+        $http.get("//dronin-autotown.appspot.com/api/search?i=tunes&q=" +
+                  encodeURIComponent($routeParams.q)).success(function(data) {
+                      $scope.results = data;
+                  });
+    };
+    $scope.search($routeParams.q);
+}
+
+autotown.controller('SearchCtrl', ['$scope', '$http', '$route', '$routeParams', searchCtrl]);
 
 function crashCtrl($scope, $http, $routeParams) {
     $http.get('//dronin-autotown.appspot.com/api/crash/' + $routeParams.dummy).success(function(data) {

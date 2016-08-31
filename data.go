@@ -73,17 +73,17 @@ type timestampedTau struct {
 }
 
 type TuneDoc struct {
-	Timestamp    time.Time          `search:"ts",json:"ts"`
-	Board        search.Atom        `search:"board",json:"board"`
-	VehicleType  search.Atom        `search:"vtype",json:"vtype"`
-	Observation  string             `search:"observation",json:"observation"`
-	Tau          float64            `search:"tau",json:"tau"`
-	Location     appengine.GeoPoint `search:"geo",json:"geo"`
-	LocationText string             `search:"location",json:"location"`
-	Weight       float64            `search:"weight",json:"weight"`
-	Size         float64            `search:"size",json:"size"`
-	Cells        float64            `search:"cells",json:"cells"`
-	UUID         string             `search:"uuid",json:"uuid"`
+	Timestamp    time.Time          `search:"ts" json:"ts"`
+	Board        search.Atom        `search:"board" json:"board"`
+	VehicleType  search.Atom        `search:"vtype" json:"vtype"`
+	Observation  string             `search:"observation" json:"observation"`
+	Tau          float64            `search:"tau" json:"tau"`
+	Location     appengine.GeoPoint `search:"geo" json:"geo"`
+	LocationText string             `search:"location" json:"location"`
+	Weight       float64            `search:"weight" json:"weight"`
+	Size         float64            `search:"size" json:"size"`
+	Cells        float64            `search:"cells" json:"cells"`
+	UUID         string             `search:"uuid" json:"uuid"`
 
 	ID string `search:-,json:"key"`
 }

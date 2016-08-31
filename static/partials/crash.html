@@ -36,7 +36,7 @@
 <h2 ng-show="trace">Stack Trace</h2>
 
 <div ng-show="trace" class="trace">
-  <div ng-repeat="thread in trace.threads | orderBy:sortThreads" class="thread" id="thread-{{thread.thread}}">
+  <div ng-repeat="thread in trace.threads | orderBy:thread:false:sortThreads" class="thread" id="thread-{{thread.thread}}">
     <h2>Thread {{thread.thread}}</h2>
     <div ng-if="trace.crash.thread == thread.thread" class="crashed">
       <h3>Crashed!</h3>

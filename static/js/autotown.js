@@ -189,11 +189,14 @@ function crashCtrl($scope, $http, $routeParams) {
         $scope.crash = data;
         $scope.crashServer = 'https://console.developers.google.com/m/cloudstorage/b/dronin-autotown.appspot.com/o/';    });
 
-    $scope.sortThreads = function(thread) {
-      if ($scope.trace.crash.thread == thread.thread)
+    $scope.sortThreads = function(v1, v2) {
+      var t1 = parseInt(v1.value.thread);
+      var t2 = parseInt(v2.value.thread);
+      if ($scope.trace.crash.thread == t1)
         return -1;
-      else
-        return thread.thread;
+      if ($scope.trace.crash.thread == t2)
+        return 1;
+      return t1 < t2 ? -1 : 1;
     }
 
     $http.get('//dronin-autotown.appspot.com/api/crashtrace/' + $routeParams.dummy).then(function successCallback(response) {

@@ -666,7 +666,7 @@ func cacheTune(c context.Context, t *TuneResults) error {
 		}
 		t.Orig = (*json.RawMessage)(&t.Data)
 	}
-	t.Experimental = computeIceeTune(c, t.Data)
+	t.Experimental = computeIceeTune(c, []byte(*t.Orig))
 
 	grp, _ := errgroup.WithContext(c)
 

@@ -5,9 +5,15 @@
                        ng-model-options="{debounce: {'default': 500}}"></label>
 </form>
 
-<h3 ng-if="results">Search results for <q>{{rquery}}</q></h3>
+<h3 ng-if="searching">Searching for <q>{{rquery}}</q></h3>
+<h3 ng-if="results && !searching">Search results
+  for <q>{{rquery}}</q></h3>
 
-<table id="tune-results" ng-if="results">
+<p class="noragrets" ng-if="!results && !searching">
+  No results for <q>{{rquery}}</q>.
+</p>
+
+<table id="tune-results" ng-show="results" ng-class="{'searching': searching}">
   <thead>
     <tr>
       <th id="rt-timestamp">Timestamp</th>

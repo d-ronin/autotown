@@ -47,3 +47,16 @@ div#relatedTunes tr.current {
     font-weight: bold;
     color: red;
 }
+
+.searching {
+    opacity: 0.2;
+}
+
+.noragrets {
+    color: red;
+    font-weight: bold;
+}
+
+#qtsearch {
+    margin-bottom: 1em;
+}

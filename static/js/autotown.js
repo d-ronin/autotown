@@ -168,18 +168,21 @@ function searchCtrl($scope, $http, $route, $routeParams) {
     $scope.query = $routeParams.q || "board:brainre1 tau < 30 tau > 7";
     $scope.results = [];
     $scope.rquery = "";
+    $scope.searching = false;
     $scope.search = function() {
         var q = $scope.query;
         if (q == "") {
             $scope.results = null;
             return;
         }
+        $scope.searching = true;
+        $scope.rquery = q;
         $http.get("//dronin-autotown.appspot.com/api/search?i=tunes&q=" +
                   encodeURIComponent(q)).success(function(data) {
                       $scope.results = data;
-                      $scope.rquery = q;
                       $routeParams.q = q;
                       $route.updateParams($routeParams);
+                      $scope.searching = false;
                   });
     };
     $scope.search($routeParams.q);

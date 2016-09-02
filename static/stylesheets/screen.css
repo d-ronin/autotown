@@ -60,3 +60,8 @@ div#relatedTunes tr.current {
 #qtsearch {
     margin-bottom: 1em;
 }
+
+.searcherr {
+    font-size: smaller;
+    color: red;
+}

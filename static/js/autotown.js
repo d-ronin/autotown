@@ -176,14 +176,20 @@ function searchCtrl($scope, $http, $route, $routeParams) {
             return;
         }
         $scope.searching = true;
-        $scope.rquery = q;
+        $scope.squery = q;
+
         $http.get("//dronin-autotown.appspot.com/api/search?i=tunes&q=" +
-                  encodeURIComponent(q)).success(function(data) {
-                      $scope.results = data;
-                      $routeParams.q = q;
-                      $route.updateParams($routeParams);
-                      $scope.searching = false;
-                  });
+                  encodeURIComponent(q)
+                 ).then(function successCallback(response) {
+                     $scope.results = response.data;
+                     $routeParams.q = q;
+                     $route.updateParams($routeParams);
+                     $scope.searching = false;
+                     $scope.error = null;
+                     $scope.rquery = $scope.squery;
+                 }, function errorCallback(response) {
+                     $scope.error = response;
+                 });
     };
     $scope.search($routeParams.q);
 }

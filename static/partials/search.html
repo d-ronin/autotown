@@ -5,7 +5,9 @@
                        ng-model-options="{debounce: {'default': 500}}"></label>
 </form>
 
-<h3 ng-if="searching">Searching for <q>{{rquery}}</q></h3>
+<p ng-if="error" class="searcherr">{{error.data}}</p>
+
+<h3 ng-if="searching">Searching for <q>{{squery}}</q></h3>
 <h3 ng-if="results && !searching">Search results
   for <q>{{rquery}}</q></h3>
 

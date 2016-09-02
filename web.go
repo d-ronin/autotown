@@ -1341,7 +1341,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
-	var rv []*TuneDoc
+	rv := []*TuneDoc{}
 	for {
 		var doc TuneDoc
 		id, err := it.Next(&doc)
@@ -1351,7 +1351,13 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 			doc.ID = id
 			rv = append(rv, &doc)
 		} else {
-			http.Error(w, err.Error(), 500)
+			code := 500
+			// this is really dumb
+			if strings.Contains(err.Error(), "INVALID_REQUEST") {
+				code = 400
+			}
+			log.Warningf(c, "Search error:  %v", err)
+			http.Error(w, err.Error(), code)
 			return
 		}
 	}

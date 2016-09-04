@@ -66,6 +66,7 @@ func init() {
 	http.HandleFunc("/api/currentuser", handleCurrentUser)
 	http.Handle("/api/usageStats", corsHandleFunc(handleUsageStatsSummary))
 	http.Handle("/api/usageDetails", corsHandleFunc(handleUsageStatsDetails))
+	http.Handle("/api/usage", corsHandleFunc(handleUsageDetail))
 	http.Handle("/api/recentTunes", corsHandleFunc(handleRecentTunes))
 	http.Handle("/api/relatedTunes", corsHandleFunc(handleRelatedTunes))
 	http.Handle("/api/recentUsage", corsHandleFunc(handleRecentUsage))
@@ -705,6 +706,29 @@ func handleTune(w http.ResponseWriter, r *http.Request) {
 	mustEncode(c, w, tune)
 }
 
+func handleUsageDetail(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	k, err := datastore.DecodeKey(r.FormValue("usage"))
+	if err != nil {
+		log.Errorf(c, "Error parsing usage key: %v", err)
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	usage := &UsageStat{}
+	if err := datastore.Get(c, k, usage); err != nil {
+		log.Errorf(c, "Error fetching stat details: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	usage.uncompress()
+	usage.Orig = (*json.RawMessage)(&usage.Data)
+
+	mustEncode(c, w, usage)
+}
+
 type relatedTune struct {
 	Timestamp time.Time `datastore:"timestamp"`
 	Addr      string    `datastore:"addr" json:"-"`
@@ -993,15 +1017,16 @@ func handleUsageStats(w http.ResponseWriter, r *http.Request) {
 }
 
 type recentUsage struct {
-	City      string    `json:"city"`
-	Region    string    `json:"region"`
-	Country   string    `json:"country"`
-	Lon       float64   `json:"lon"`
-	Lat       float64   `json:"lat"`
-	OS        string    `json:"os,omitempty"`
-	Version   string    `json:"version,omitempty"`
-	Boards    []string  `json:"boards,omitempty"`
-	Timestamp time.Time `json:"timestamp"`
+	City      string         `json:"city"`
+	Region    string         `json:"region"`
+	Country   string         `json:"country"`
+	Lon       float64        `json:"lon"`
+	Lat       float64        `json:"lat"`
+	OS        string         `json:"os,omitempty"`
+	Version   string         `json:"version,omitempty"`
+	Boards    []string       `json:"boards,omitempty"`
+	Timestamp time.Time      `json:"timestamp"`
+	Key       *datastore.Key `json:"key"`
 }
 
 const maxRecent = 256

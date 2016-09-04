@@ -205,6 +205,8 @@ type UsageStat struct {
 	City      string    `datastore:"city"`
 	Lat       float64   `datastore:"lat"`
 	Lon       float64   `datastore:"lon"`
+
+	Orig *json.RawMessage `datastore:"-" json:",omitempty"`
 }
 
 func (t *UsageStat) compress() error {

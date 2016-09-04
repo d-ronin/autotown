@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"time"
 
@@ -207,6 +208,7 @@ type UsageStat struct {
 	Lon       float64   `datastore:"lon"`
 
 	Orig *json.RawMessage `datastore:"-" json:",omitempty"`
+	Key  *datastore.Key   `datastore:"-"`
 }
 
 func (t *UsageStat) compress() error {
@@ -225,6 +227,93 @@ func (t *UsageStat) uncompress() error {
 	}
 	t.Data = d
 	return nil
+}
+
+func indexUsage(c context.Context, k string, u *UsageStat) error {
+	index, err := search.Open("usage")
+	if err != nil {
+		return err
+	}
+	udoc := &UsageDoc{u}
+	_, err = index.Put(c, k, udoc)
+	return err
+}
+
+type UsageDoc struct{ s *UsageStat }
+
+func (u *UsageDoc) Load(fields []search.Field, md *search.DocumentMetadata) error {
+	return fmt.Errorf("don't know how to load these: %v", fields)
+}
+
+func (u *UsageDoc) Save() ([]search.Field, *search.DocumentMetadata, error) {
+	fields := []search.Field{
+		{Name: "timestamp", Value: u.s.Timestamp},
+		{Name: "id", Value: u.s.Key.Encode()},
+		{Name: "geo", Value: appengine.GeoPoint{u.s.Lat, u.s.Lon}},
+		{Name: "location", Value: u.s.City + " " + u.s.Region + " " + u.s.Country},
+	}
+
+	d, err := ungz(u.s.Data)
+	if err != nil {
+		d = u.s.Data
+	}
+
+	var o struct {
+		Boards []struct {
+			UUID string
+			Name string
+		} `json:"boardsSeen"`
+		DebugLog []struct {
+			File, Function, Level, Message string
+		}
+		OS      string `json:"currentOS"`
+		Version string `json:"gcs_version"`
+	}
+	if err := json.Unmarshal(d, &o); err != nil {
+		// Logging seems to fail me here, and I don't
+		// necessarily want to fail the whole thing.
+	} else {
+		fields = append(fields, search.Field{Name: "os", Value: o.OS})
+		fields = append(fields, search.Field{Name: "version", Value: o.Version})
+
+		seen := map[string]bool{}
+		for _, s := range o.Boards {
+			if seen[s.UUID] {
+				continue
+			}
+			seen[s.UUID] = true
+			fields = append(fields, search.Field{Name: "uuid", Value: s.UUID})
+			fields = append(fields, search.Field{Name: "name", Value: s.Name})
+		}
+
+		maxLvl := 0.0
+		for _, d := range o.DebugLog {
+			lvl := 0.0
+			switch d.Level {
+			case "debug":
+				lvl = 1.0
+			case "info":
+				lvl = 2.0
+			case "warning":
+				lvl = 3.0
+			case "critical":
+				lvl = 4.0
+			case "fatal":
+				lvl = 5.0
+			}
+			if lvl > maxLvl {
+				maxLvl = lvl
+			}
+			fields = append(fields, search.Field{Name: "debug_file", Value: d.File})
+			fields = append(fields, search.Field{Name: "debug_func", Value: d.Function})
+			fields = append(fields, search.Field{Name: "debug_msg", Value: d.Message})
+		}
+
+		fields = append(fields, search.Field{Name: "debug_lvl", Value: maxLvl})
+	}
+
+	meta := &search.DocumentMetadata{}
+	return fields, meta, nil
 }
 
 type FoundController struct {

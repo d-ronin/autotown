@@ -35,6 +35,7 @@ func init() {
 
 	http.HandleFunc("/batch/logkeys", handleLogKeys)
 	http.HandleFunc("/batch/indexTunes", handleIndexTunes)
+	http.HandleFunc("/batch/indexUsage", handleIndexUsage)
 
 	http.HandleFunc("/batch/processUsage", handleProcessUsage)
 
@@ -316,6 +317,31 @@ func handleIndexTunes(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := indexDoc(c, tune); err != nil {
+			log.Errorf(c, "Error indexing: %v", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	}
+}
+
+func handleIndexUsage(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	keys, err := decodeKeys(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	for _, k := range keys {
+		usage := &UsageStat{}
+		if err := datastore.Get(c, k, usage); err != nil {
+			log.Errorf(c, "Error fetching stat details: %v", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		usage.Key = k
+
+		if err := indexUsage(c, k.Encode(), usage); err != nil {
 			log.Errorf(c, "Error indexing: %v", err)
 			http.Error(w, err.Error(), 500)
 			return

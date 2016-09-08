@@ -181,7 +181,17 @@ function searchCtrl($scope, $http, $route, $routeParams) {
         $http.get("//dronin-autotown.appspot.com/api/search?i=tunes&q=" +
                   encodeURIComponent(q)
                  ).then(function successCallback(response) {
-                     $scope.results = response.data;
+                     var rmap = {};
+                     $scope.results = [];
+                     response.data.forEach(function(r) {
+                         if (rmap[r.uuid]) {
+                             rmap[r.uuid].dups.push(r);
+                         } else {
+                             r.dups = [];
+                             rmap[r.uuid] = r;
+                             $scope.results.push(r);
+                         }
+                     });
                      $routeParams.q = q;
                      $route.updateParams($routeParams);
                      $scope.searching = false;

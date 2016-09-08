@@ -22,6 +22,7 @@
       <th id="rt-board">Board</th>
       <th id="rt-tau">Tau</th>
       <th id="rt-loc">Where</th>
+      <th id="rt-other">Also on This Board</td>
     </tr>
   </thead>
 
@@ -34,6 +35,11 @@
       </td>
       <td><a href="https://www.google.com/maps/@{{t.geo.Lat}},{{t.geo.Lon}},12z">
           {{t.location}}</a></td>
+      <td class="sr-other">
+        <span ng-repeat-start="o in t.dups | orderBy:'ts':true"></span>
+        <a title="{{o.ts|relDate}} in {{o.location}}" href="/at/tune/{{o.ID}}">{{o.tau/1000|tomillis}}ms</a>
+        <span ng-repeat-end></span>
+      </td>
     </tr>
   </tbody>
 </table>

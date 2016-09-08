@@ -65,3 +65,7 @@ div#relatedTunes tr.current {
     font-size: smaller;
     color: red;
 }
+
+.sr-other {
+    font-size: small;
+}

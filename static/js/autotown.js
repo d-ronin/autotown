@@ -185,6 +185,7 @@ function searchCtrl($scope, $http, $route, $routeParams) {
                      $scope.results = [];
                      response.data.forEach(function(r) {
                          var tune = {
+                             ID: r.ID,
                              ts: r.ts,
                              tau: r.tau,
                              location: r.location,

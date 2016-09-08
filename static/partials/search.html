@@ -35,7 +35,7 @@
         <span ng-repeat-start="o in t.tunes | orderBy:'ts':true"></span>
         <a title="{{o.ts|relDate}} in {{o.location}}"
            href="/at/tune/{{o.ID}}"
-           ng-class="{bogus: isBogusTau(t.tau/1000)}">{{o.tau/1000|tomillis}}ms</a>
+           ng-class="{bogus: isBogusTau(o.tau/1000)}">{{o.tau/1000|tomillis}}ms</a>
         <span ng-repeat-end></span>
       </td>
     </tr>

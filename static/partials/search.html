@@ -29,7 +29,7 @@
     <tr ng-repeat="t in results | orderBy:'ts':true">
       <td title="{{t.ts}}"><a href="/at/tune/{{t.ID}}">{{t.ts|relDate}}</a></td>
       <td>{{t.board}}</td>
-      <td><a href="https://www.google.com/maps/@{{t.geo.Lat}},{{t.geo.Lon}},12z">
+      <td><a href="https://www.google.com/maps/@{{t.geo.Lat}},{{t.geo.Lng}},12z">
           {{t.location}}</a></td>
       <td class="sr-other">
         <span ng-repeat-start="o in t.tunes | orderBy:'ts':true"></span>

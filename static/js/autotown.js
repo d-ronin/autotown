@@ -184,10 +184,15 @@ function searchCtrl($scope, $http, $route, $routeParams) {
                      var rmap = {};
                      $scope.results = [];
                      response.data.forEach(function(r) {
+                         var tune = {
+                             ts: r.ts,
+                             tau: r.tau,
+                             location: r.location,
+                         };
                          if (rmap[r.uuid]) {
-                             rmap[r.uuid].dups.push(r);
+                             rmap[r.uuid].tunes.push(tune);
                          } else {
-                             r.dups = [];
+                             r.tunes = [tune];
                              rmap[r.uuid] = r;
                              $scope.results.push(r);
                          }

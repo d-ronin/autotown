@@ -18,26 +18,24 @@
 <table id="tune-results" ng-show="results" ng-class="{'searching': searching}">
   <thead>
     <tr>
-      <th id="rt-timestamp">Timestamp</th>
+      <th id="rt-timestamp">Latest Match</th>
       <th id="rt-board">Board</th>
-      <th id="rt-tau">Tau</th>
       <th id="rt-loc">Where</th>
-      <th id="rt-other">Also on This Board</td>
+      <th id="rt-other">Tunes</td>
     </tr>
   </thead>
 
   <tbody>
-    <tr ng-repeat="t in results">
+    <tr ng-repeat="t in results | orderBy:'ts':true">
       <td title="{{t.ts}}"><a href="/at/tune/{{t.ID}}">{{t.ts|relDate}}</a></td>
       <td>{{t.board}}</td>
-      <td class="tune-tau">
-        <span ng-class="{bogus: isBogusTau(t.tau/1000)}">{{t.tau/1000|tomillis}} ms</span>
-      </td>
       <td><a href="https://www.google.com/maps/@{{t.geo.Lat}},{{t.geo.Lon}},12z">
           {{t.location}}</a></td>
       <td class="sr-other">
-        <span ng-repeat-start="o in t.dups | orderBy:'ts':true"></span>
-        <a title="{{o.ts|relDate}} in {{o.location}}" href="/at/tune/{{o.ID}}">{{o.tau/1000|tomillis}}ms</a>
+        <span ng-repeat-start="o in t.tunes | orderBy:'ts':true"></span>
+        <a title="{{o.ts|relDate}} in {{o.location}}"
+           href="/at/tune/{{o.ID}}"
+           ng-class="{bogus: isBogusTau(t.tau/1000)}">{{o.tau/1000|tomillis}}ms</a>
         <span ng-repeat-end></span>
       </td>
     </tr>

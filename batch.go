@@ -268,6 +268,14 @@ func handleLogKeys(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func jraw(c context.Context, m *json.RawMessage, path string) []byte {
+	rv, err := jsonpointer.Find([]byte(*m), path)
+	if err != nil {
+		log.Warningf(c, "Error decoding %q from %v: %v", path, m, err)
+	}
+	return rv
+}
+
 func jptrs(c context.Context, m *json.RawMessage, path string) string {
 	var rv string
 	err := jsonpointer.FindDecode([]byte(*m), path, &rv)

@@ -85,7 +85,7 @@ type TuneDoc struct {
 	Size         float64            `search:"size" json:"size"`
 	Cells        float64            `search:"cells" json:"cells"`
 	UUID         string             `search:"uuid" json:"uuid"`
-	Config       string             `search:"config" json"-"`
+	Config       string             `search:"config" json:"-"`
 
 	ID string `search:-,json:"key"`
 }

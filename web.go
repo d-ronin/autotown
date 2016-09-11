@@ -1345,19 +1345,7 @@ func handleUsageStatsDetails(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func handleSearch(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
-	idxName := r.FormValue("i")
-	if idxName != "tunes" {
-		http.Error(w, "Invalid index name", 400)
-		return
-	}
-	index, err := search.Open(idxName)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
+func handleSearchTunes(c context.Context, index *search.Index, w http.ResponseWriter, r *http.Request) {
 	it := index.Search(c, r.FormValue("q"), &search.SearchOptions{
 		Sort: &search.SortOptions{
 			Expressions: []search.SortExpression{
@@ -1388,4 +1376,58 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mustEncode(c, w, rv)
+}
+func handleSearchUsage(c context.Context, index *search.Index, w http.ResponseWriter, r *http.Request) {
+	it := index.Search(c, r.FormValue("q"), &search.SearchOptions{
+		Sort: &search.SortOptions{
+			Expressions: []search.SortExpression{
+				{Expr: "ts"},
+			},
+		},
+	})
+
+	rv := []*UsageDoc{}
+	for {
+		var doc UsageDoc
+		_, err := it.Next(&doc)
+		if err == search.Done {
+			break
+		} else if err == nil {
+			rv = append(rv, &doc)
+		} else {
+			code := 500
+			// this is really dumb
+			if strings.Contains(err.Error(), "INVALID_REQUEST") {
+				code = 400
+			}
+			log.Warningf(c, "Search error:  %v", err)
+			http.Error(w, err.Error(), code)
+			return
+		}
+	}
+
+	mustEncode(c, w, rv)
+}
+
+func handleSearch(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	idxName := r.FormValue("i")
+	f := handleSearchTunes
+	switch idxName {
+	case "tunes":
+		f = handleSearchTunes
+	case "usage":
+		f = handleSearchUsage
+	default:
+		http.Error(w, "Invalid index name", 400)
+		return
+	}
+	if idxName != "tunes" {
+	}
+	index, err := search.Open(idxName)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	f(c, index, w, r)
 }

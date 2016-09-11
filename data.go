@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"fmt"
 	"io"
 	"time"
 
@@ -236,15 +235,33 @@ func indexUsage(c context.Context, k string, u *UsageStat) error {
 	if err != nil {
 		return err
 	}
-	udoc := &UsageDoc{u}
+	udoc := &UsageDoc{u, nil}
 	_, err = index.Put(c, k, udoc)
 	return err
 }
 
-type UsageDoc struct{ s *UsageStat }
+type UsageDoc struct {
+	s *UsageStat
+	m map[string]interface{}
+}
 
 func (u *UsageDoc) Load(fields []search.Field, md *search.DocumentMetadata) error {
-	return fmt.Errorf("don't know how to load these: %v", fields)
+	u.m = map[string]interface{}{}
+	for _, f := range fields {
+		switch f.Name {
+		case "uuid", "name":
+			var s []string
+			s, _ = u.m[f.Name].([]string)
+			u.m[f.Name] = append(s, f.Value.(string))
+		default:
+			u.m[f.Name] = f.Value
+		}
+	}
+	return nil
+}
+
+func (u *UsageDoc) MarshalJSON() ([]byte, error) {
+	return json.Marshal(u.m)
 }
 
 func (u *UsageDoc) Save() ([]search.Field, *search.DocumentMetadata, error) {

@@ -245,17 +245,30 @@ type UsageDoc struct {
 	m map[string]interface{}
 }
 
+type uuidboard struct {
+	UUID  string `json:"uuid"`
+	Board string `json:"board"`
+}
+
 func (u *UsageDoc) Load(fields []search.Field, md *search.DocumentMetadata) error {
 	u.m = map[string]interface{}{}
+	var uuids, boards []string
 	for _, f := range fields {
 		switch f.Name {
-		case "uuid", "name":
-			var s []string
-			s, _ = u.m[f.Name].([]string)
-			u.m[f.Name] = append(s, f.Value.(string))
+		case "uuid":
+			uuids = append(uuids, f.Value.(string))
+		case "name":
+			boards = append(boards, f.Value.(string))
 		default:
 			u.m[f.Name] = f.Value
 		}
+	}
+	if len(uuids) == len(boards) && len(uuids) > 0 {
+		var bu []uuidboard
+		for i := range boards {
+			bu = append(bu, uuidboard{uuids[i], boards[i]})
+		}
+		u.m["boards"] = bu
 	}
 	return nil
 }

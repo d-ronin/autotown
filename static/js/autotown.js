@@ -179,7 +179,7 @@ function searchCtrl($scope, $http, $route, $routeParams) {
         $scope.squery = q;
 
         $http.get("//dronin-autotown.appspot.com/api/search?i=tunes&q=" +
-                  encodeURIComponent(q)
+                  encodeURIComponent(q) + "&l=" + $routeParams.l
                  ).then(function successCallback(response) {
                      var rmap = {};
                      $scope.results = [];

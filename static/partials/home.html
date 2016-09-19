@@ -20,7 +20,7 @@
   <tbody>
     <tr ng-repeat="t in recentTunes">
       <td title="{{t.Timestamp}}"><a href="/at/tune/{{t.Key}}">{{t.Timestamp|relDate}}</a></td>
-      <td>{{t.Board}}</td>
+      <td><a href="/at/tune/search/?l=100&amp;q=board:{{t.Board}}">{{t.Board}}</a></td>
       <td class="tune-tau">
         <span ng-class="{bogus: isBogusTau(t.Tau)}">{{t.Tau|tomillis}} ms</span>
       </td>

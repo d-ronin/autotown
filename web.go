@@ -1346,7 +1346,12 @@ func handleUsageStatsDetails(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSearchTunes(c context.Context, index *search.Index, w http.ResponseWriter, r *http.Request) {
+	limit, err := strconv.Atoi(r.FormValue("l"))
+	if err != nil {
+		limit = 0
+	}
 	it := index.Search(c, r.FormValue("q"), &search.SearchOptions{
+		Limit: limit,
 		Sort: &search.SortOptions{
 			Expressions: []search.SortExpression{
 				{Expr: "ts"},

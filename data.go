@@ -92,7 +92,7 @@ type TuneDoc struct {
 func indexDoc(c context.Context, tune *TuneResults) error {
 	doc := &TuneDoc{
 		Timestamp:    tune.Timestamp,
-		Board:        search.Atom(tune.Board),
+		Board:        search.Atom(canonicalBoard(tune.Board)),
 		VehicleType:  search.Atom(jptrs(c, tune.Orig, "/vehicle/type")),
 		Observation:  jptrs(c, tune.Orig, "/userObservations"),
 		Tau:          tune.Tau * 1000,

@@ -40,7 +40,11 @@
     <h2>Thread {{thread.thread}}</h2>
     <div ng-if="trace.crash.thread == thread.thread" class="crashed">
       <h3>Crashed!</h3>
-      <p>Reason: {{trace.crash.reason}}<br />Address: 0x{{trace.crash.address.toString(16)}}</p>
+      <p>
+        Reason: {{trace.crash.reason}}<br />
+        Address: 0x{{trace.crash.address.toString(16)}}
+        <span ng-show="crashModule"> (in {{crashModule.file}})</span>
+      </p>
     </div>
     <div ng-repeat="frame in thread.frames" class="frame" id="frame-{{frame.frame}}">
       <h3>Frame {{frame.frame}}: {{frame.module}}<span ng-show="frame.function">!{{frame.function}}</span></h3>

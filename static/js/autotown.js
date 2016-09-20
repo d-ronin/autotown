@@ -230,6 +230,14 @@ function crashCtrl($scope, $http, $routeParams) {
     $http.get('//dronin-autotown.appspot.com/api/crashtrace/' + $routeParams.dummy).then(function successCallback(response) {
       $scope.sourcecode = {}
       $scope.trace = response.data;
+      if ($scope.trace.crash.address) {
+        angular.forEach($scope.trace.modules, function(mod, key) {
+          if (mod.baseaddress < this.trace.crash.address &&
+              mod.maxaddress > this.trace.crash.address) {
+            this.crashModule = mod;
+          }
+        }, $scope);
+      }
 
       // angular can't sort objects, even with a custom sort function, sigh
       var threads = [];

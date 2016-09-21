@@ -115,6 +115,8 @@ autotown.controller('TuneCtrl', ['$scope', '$http', '$routeParams',
                                          var bkey = "Hw" + data.Board;
                                          if (bkey == "HwCC3D") {
                                              bkey = "HwCopterControl";
+                                         } else if (bkey == "HwDTFc") {
+                                             bkey = "HwDtfc";
                                          }
                                          var board = data.Orig.rawSettings[bkey].fields;
                                          for (var k in board) {

@@ -67,9 +67,9 @@
   <h3>Config</h3>
 
   <table>
-    <tr><th>MPU Rate</th><td>{{hw.mpurate}}</td></tr>
-    <tr><th>Gyro LPF</th><td>{{hw.gyrolpf}}</td></tr>
-    <tr><th>Accel LPF</th><td>{{hw.accellpf}}</td></tr>
+    <tr ng-show="hw.mpurate"><th>MPU Rate</th><td>{{hw.mpurate}}</td></tr>
+    <tr ng-show="hw.gyrolpf"><th>Gyro LPF</th><td>{{hw.gyrolpf}}</td></tr>
+    <tr ng-show="hw.accellpf"><th>Accel LPF</th><td>{{hw.accellpf}}</td></tr>
     <tr ng-show="bterm">
       <th>In/Out Curve Fit</th>
       <td title="{{bterm}}">{{bterm | number}}</td>

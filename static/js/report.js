@@ -249,12 +249,16 @@ function drawProcessorGraph(data) {
 
         chart.yAxis.tickFormat(d3.format(',d'));
 
+        var unknown = {};
         var values = {'F1': 0, 'F3': 0, 'F4': 0};
         d3.map(data['board']).forEach(function(k, v) {
             if (processorTypes[k]) {
                 values[processorTypes[k]] += v;
+            } else {
+                unknown[k] = (unknown[k] || 0) + v;
             }
         });
+        console.log("Unknown processors:", unknown);
 
         d3.select('#procs svg')
             .datum([{'key': 'Procs', values: d3.entries(values)}])

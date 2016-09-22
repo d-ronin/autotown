@@ -46,6 +46,14 @@
         width: 800px;
       }
 
+      #boardsothers {
+      margin-bottom: 2em;
+      margin-left: 2em;
+        font-size: smaller;
+        color: #444;
+        width: 906px;
+      }
+
       #oproc {
         float: right;
       }
@@ -109,7 +117,11 @@
 
   <body>
     <div id="charts">
-      <div id="boards"><h2>Boards (<span id="totalboards">0</span> total)</h2><svg></svg></div>
+      <div id="boards">
+        <h2>Boards (<span id="totalboards">0</span> total)</h2>
+        <svg></svg>
+      </div>
+      <div id="boardsothers"></div>
       <div id="monthly">
         <h2>Monthly Growth</h2>
         <svg></svg>

@@ -19,6 +19,18 @@ function drawBoardGraph(data) {
 
         var values = d3.entries(data['board']);
         values.sort(function (a, b) {return d3.descending(a.value, b.value); });
+        var other = 0;
+        var others = [];
+        values = values.filter(function(d) {
+            if (d.value < 5) {
+                others.push(d.value + "×" + d.key);
+                other += d.value;
+                return false;
+            }
+            return true;
+        });
+        values.push({key: 'Other', value: other});
+        d3.select("#boardsothers").text("Other: " + others.join(", "));
 
         d3.select('#boards svg')
             .datum([{'key': 'Boards', values: values}])

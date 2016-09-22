@@ -225,6 +225,7 @@ var processorTypes = {
     "Lux":'F3',
     "Naze":'F1',
     "Naze32Pro":'F3',
+    "PlayUAVOSD":'F4',
     "Revo":'F4',
     "RevoMini":'F4',
     "Revolution":'F4',

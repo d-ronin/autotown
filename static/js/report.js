@@ -9,10 +9,11 @@ function drawBoardGraph(data) {
             .x(function(d) { return d.key })
             .y(function(d) { return d.value })
             .staggerLabels(true)
-            .tooltips(false)
             .valueFormat(d3.format(',f'))
             .color(function(d) { return boardColors(d.key);})
             .showValues(true);
+
+        chart.tooltip.enabled(false);
 
         chart.yAxis.tickFormat(d3.format(',d'));
 
@@ -37,10 +38,11 @@ function drawCountryGraph(data) {
             .x(function(d) { return d.key })
             .y(function(d) { return d.value })
             .staggerLabels(true)
-            .tooltips(false)
             .valueFormat(d3.format(',f'))
             .color(function(d) { return boardColors(d.key);})
             .showValues(true);
+
+            chart.tooltip.enabled(false);
 
         chart.yAxis.tickFormat(d3.format(',d'));
 
@@ -68,10 +70,11 @@ function drawCountryGraphNormalized(data) {
             .x(function(d) { return d.key })
             .y(function(d) { return d.value })
             .staggerLabels(true)
-            .tooltips(false)
             .valueFormat(d3.format(',.1f'))
             .color(function(d) { return boardColors(d.key);})
             .showValues(true);
+
+            chart.tooltip.enabled(false);
 
         chart.yAxis.tickFormat(d3.format(',d'));
 
@@ -244,9 +247,10 @@ function drawProcessorGraph(data) {
             .y(function(d) { return d.value })
             .staggerLabels(true)
             .color(function(d) { return procColors(d.key); })
-            .tooltips(false)
             .valueFormat(d3.format(',f'))
             .showValues(true);
+
+            chart.tooltip.enabled(false);
 
         chart.yAxis.tickFormat(d3.format(',d'));
 
@@ -279,9 +283,10 @@ function drawOSGraph(data) {
             .x(function(d) { return d.key })
             .y(function(d) { return d.value })
             .staggerLabels(true)
-            .tooltips(false)
             .valueFormat(d3.format(',f'))
             .showValues(true);
+
+            chart.tooltip.enabled(false);
 
         chart.yAxis.tickFormat(d3.format(',d'));
 

@@ -385,10 +385,11 @@ function nocase(a, b) {
     return a.toLowerCase().localeCompare(b.toLowerCase());
 }
 
-function drawAdditionsRate(data, dest, colors, options, accessor) {
+function drawAdditionsRate(data, dest, colors, options, accessor, window, maxdays) {
     var timeline = {};
     options.forEach(function(i) { timeline[i] = {}; });
     var others = {};
+    var now = new Date();
     data.forEach(function(v) {
         var t = accessor(v);
         if (!timeline[t]) { others[t] = (others[t] || 0) + 1; t = 'Other'; }
@@ -398,11 +399,13 @@ function drawAdditionsRate(data, dest, colors, options, accessor) {
         d.setMinutes(0);
         d.setSeconds(0);
 
-        // Ensure we've got a value for every proc type.  There was one week
-        // with zero F3s, and that breaks the charting stuff. :(
-        options.forEach(function(proc) { timeline[proc][+d] |= 0; });
+        if (Math.round((now.getTime() - d.getTime())/(86400*1000)) < maxdays){
+            // Ensure we've got a value for every proc type.  There was one week
+            // with zero F3s, and that breaks the charting stuff. :(
+            options.forEach(function(proc) { timeline[proc][+d] |= 0; });
 
-        timeline[t][+d]++;
+            timeline[t][+d]++;
+        }
     });
     d3.select("#monthlyothers").text("Not shown: " + d3.keys(others).sort(nocase).join(", "));
 
@@ -413,12 +416,12 @@ function drawAdditionsRate(data, dest, colors, options, accessor) {
             values.push({x: +k, y: v});
         });
         values.sort(function (a, b) {return d3.ascending(a.x, b.x); });
-        // Reduce value set to sum of seven day windows.
-        var v30 = [];
-        for (var i = 30; i<values.length-1; i++) {
-            v30.push({x: values[i].x, y: d3.sum(values.slice(i-30, i), function(d) { return d.y; })});
+        // Reduce value set to sum of N day windows.
+        var vw = [];
+        for (var i = window; i<values.length-1; i++) {
+            vw.push({x: values[i].x, y: d3.sum(values.slice(i-window, i), function(d) { return d.y; })});
         }
-        tldata.push({key: proc, values: v30});
+        tldata.push({key: proc, values: vw});
     });
 
     nv.addGraph(function() {
@@ -485,7 +488,13 @@ function drawPlots() {
             drawAdditionsRate(results[1], '#monthly svg', boardColors,
                               ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
                                "quanton", "Revo", "Sparky", "Sparky2", "Other"],
-                              function(d) { return d.name; });
+                              function(d) { return d.name; },
+                              30, 365*5);
+            drawAdditionsRate(results[1], '#weekly svg', boardColors,
+                              ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
+                               "quanton", "Revo", "Sparky", "Sparky2", "Other"],
+                              function(d) { return d.name; },
+                              7, 60);
             /*
             drawAdditionsRate(results[1], '#monthlyprocs svg', procColors,
                               ['F1', 'F3', 'F4', 'Other'],

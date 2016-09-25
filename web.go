@@ -1326,7 +1326,10 @@ func handleUsageStatsDetails(w http.ResponseWriter, r *http.Request) {
 		"country", "region", "city", "lat", "lon",
 	}
 
-	cw := csv.NewWriter(w)
+	out := newGzippingWriter(w, r)
+	defer out.Close()
+
+	cw := csv.NewWriter(out)
 	defer cw.Flush()
 	cw.Write(header)
 

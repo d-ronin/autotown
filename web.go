@@ -486,25 +486,37 @@ func handleAutotown(w http.ResponseWriter, r *http.Request) {
 	execTemplate(appengine.NewContext(r), w, "app.html", nil)
 }
 
-func mustEncode(c context.Context, w io.Writer, i interface{}) {
+func mustEncode(c context.Context, w io.Writer, req *http.Request, i interface{}) {
 	if headered, ok := w.(http.ResponseWriter); ok {
 		headered.Header().Set("Cache-Control", "no-cache")
 		headered.Header().Set("Content-type", "application/json")
 	}
 
-	if err := json.NewEncoder(w).Encode(i); err != nil {
+	out := newGzippingWriter(w, req)
+	defer out.Close()
+
+	if reflect.TypeOf(i).Kind() == reflect.Slice {
+		if err := encodeJSONSlice(out, i); err != nil {
+			log.Errorf(c, "Error json encoding: %v", err)
+			if h, ok := w.(http.ResponseWriter); ok {
+				http.Error(h, err.Error(), 500)
+			}
+			return
+		}
+	}
+
+	if err := json.NewEncoder(out).Encode(i); err != nil {
 		log.Errorf(c, "Error json encoding: %v", err)
 		if h, ok := w.(http.ResponseWriter); ok {
 			http.Error(h, err.Error(), 500)
 		}
-		return
 	}
 }
 
 func handleCurrentUser(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	u, _ := user.Current()
-	mustEncode(c, w, u)
+	mustEncode(c, w, r, u)
 }
 
 func fillKeyQuery(c context.Context, q *datastore.Query, results interface{}) error {
@@ -565,7 +577,7 @@ func handleRecentTunes(w http.ResponseWriter, r *http.Request) {
 		rv = rv[:n]
 	}
 
-	mustEncode(c, w, rv)
+	mustEncode(c, w, r, rv)
 }
 
 func computeIceeTune(c context.Context, data []byte) map[string]float64 {
@@ -703,7 +715,7 @@ func handleTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mustEncode(c, w, tune)
+	mustEncode(c, w, r, tune)
 }
 
 func handleUsageDetail(w http.ResponseWriter, r *http.Request) {
@@ -726,7 +738,7 @@ func handleUsageDetail(w http.ResponseWriter, r *http.Request) {
 	usage.uncompress()
 	usage.Orig = (*json.RawMessage)(&usage.Data)
 
-	mustEncode(c, w, usage)
+	mustEncode(c, w, r, usage)
 }
 
 type relatedTune struct {
@@ -797,7 +809,7 @@ func handleRelatedTunes(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	mustEncode(c, w, res)
+	mustEncode(c, w, r, res)
 }
 
 func handleRecentCrashes(w http.ResponseWriter, r *http.Request) {
@@ -810,7 +822,7 @@ func handleRecentCrashes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mustEncode(c, w, res)
+	mustEncode(c, w, r, res)
 }
 
 func handleCrash(w http.ResponseWriter, r *http.Request) {
@@ -833,7 +845,7 @@ func handleCrash(w http.ResponseWriter, r *http.Request) {
 	}
 	crash.Key = k
 
-	mustEncode(c, w, crash)
+	mustEncode(c, w, r, crash)
 }
 
 func handleTrace(w http.ResponseWriter, r *http.Request) {
@@ -1059,7 +1071,7 @@ func handleRecentUsage(w http.ResponseWriter, r *http.Request) {
 		recent = rv
 	}
 
-	mustEncode(c, w, recent)
+	mustEncode(c, w, r, recent)
 }
 
 func traceId(r *http.Request) string {
@@ -1206,7 +1218,7 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 	itm, err := memcache.Get(c, resultsStatsKey)
 	if err == nil {
 		rm := json.RawMessage(itm.Value)
-		mustEncode(c, w, &rm)
+		mustEncode(c, w, r, &rm)
 		return
 	}
 
@@ -1295,7 +1307,7 @@ func handleUsageStatsSummary(w http.ResponseWriter, r *http.Request) {
 		Expiration: time.Hour,
 	})
 
-	mustEncode(c, w, results)
+	mustEncode(c, w, r, results)
 }
 
 func handleUsageStatsDetails(w http.ResponseWriter, r *http.Request) {
@@ -1380,7 +1392,7 @@ func handleSearchTunes(c context.Context, index *search.Index, w http.ResponseWr
 		}
 	}
 
-	mustEncode(c, w, rv)
+	mustEncode(c, w, r, rv)
 }
 func handleSearchUsage(c context.Context, index *search.Index, w http.ResponseWriter, r *http.Request) {
 	it := index.Search(c, r.FormValue("q"), &search.SearchOptions{
@@ -1411,7 +1423,7 @@ func handleSearchUsage(c context.Context, index *search.Index, w http.ResponseWr
 		}
 	}
 
-	mustEncode(c, w, rv)
+	mustEncode(c, w, r, rv)
 }
 
 func handleSearch(w http.ResponseWriter, r *http.Request) {

@@ -272,7 +272,7 @@ func handleGitLabels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mustEncode(c, w, refs)
+	mustEncode(c, w, r, refs)
 }
 
 func fetchBlob(c context.Context, g *errgroup.Group, h, filename string) (*gitBlob, error) {

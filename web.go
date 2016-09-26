@@ -501,8 +501,8 @@ func mustEncode(c context.Context, w io.Writer, req *http.Request, i interface{}
 			if h, ok := w.(http.ResponseWriter); ok {
 				http.Error(h, err.Error(), 500)
 			}
-			return
 		}
+		return
 	}
 
 	if err := json.NewEncoder(out).Encode(i); err != nil {

@@ -56,7 +56,7 @@ func (c *CrashData) Save() ([]datastore.Property, error) {
 	return rv, nil
 }
 
-func (c *CrashData) MarshalJSON() ([]byte, error) {
+func (c CrashData) MarshalJSON() ([]byte, error) {
 	c.properties["Key"] = c.Key
 	defer delete(c.properties, "Key")
 	return json.Marshal(c.properties)

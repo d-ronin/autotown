@@ -273,7 +273,7 @@ func (u *UsageDoc) Load(fields []search.Field, md *search.DocumentMetadata) erro
 	return nil
 }
 
-func (u *UsageDoc) MarshalJSON() ([]byte, error) {
+func (u UsageDoc) MarshalJSON() ([]byte, error) {
 	return json.Marshal(u.m)
 }
 

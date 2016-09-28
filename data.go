@@ -369,4 +369,33 @@ type FoundController struct {
 	Lon       float64   `datastore:"lon"`
 	Oldest    time.Time `datastore:"oldest_timestamp"`
 	Timestamp time.Time `datastore:"timestamp"`
+
+	Counted bool `datastore:"counted"`
+}
+
+type DailyCounts struct {
+	Day    string           `json:"day"`
+	Counts map[string]int64 `json:"counts"`
+
+	key *datastore.Key
+}
+
+func (c *DailyCounts) Load(ps []datastore.Property) error {
+	c.Counts = map[string]int64{}
+	for _, p := range ps {
+		c.Counts[p.Name] = p.Value.(int64)
+	}
+	return nil
+}
+
+func (c *DailyCounts) Save() ([]datastore.Property, error) {
+	rv := []datastore.Property{}
+	for k, v := range c.Counts {
+		rv = append(rv, datastore.Property{
+			Name:    k,
+			Value:   v,
+			NoIndex: true,
+		})
+	}
+	return rv, nil
 }

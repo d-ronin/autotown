@@ -24,6 +24,7 @@ const (
 	mapStage1         = "map"
 	mapStage2         = "map2"
 	resubmitThreshold = 1000
+	dayFmt            = "2006-01-02"
 )
 
 func init() {
@@ -36,6 +37,7 @@ func init() {
 	http.HandleFunc("/batch/logkeys", handleLogKeys)
 	http.HandleFunc("/batch/indexTunes", handleIndexTunes)
 	http.HandleFunc("/batch/indexUsage", handleIndexUsage)
+	http.HandleFunc("/batch/countUsage", handleCountUsage)
 
 	http.HandleFunc("/batch/processUsage", handleProcessUsage)
 
@@ -355,6 +357,83 @@ func handleIndexUsage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+}
+
+func handleCountUsage(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	fckeys, err := decodeKeys(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	fcs := make([]*FoundController, len(fckeys))
+	if err := datastore.GetMulti(c, fckeys, fcs); err != nil {
+		log.Errorf(c, "Error fetching FoundControllers: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	incrs := map[string]map[string]int64{}
+	for _, fc := range fcs {
+		if fc.Counted {
+			continue
+		}
+		fc.Counted = true
+		ds := fc.Oldest.Format(dayFmt)
+		if _, ok := incrs[ds]; !ok {
+			incrs[ds] = map[string]int64{}
+		}
+
+		incrs[ds][fc.Name]++
+	}
+
+	keys := []*datastore.Key{}
+	for k := range incrs {
+		keys = append(keys, datastore.NewKey(c, "DailyCounts", k, 0, nil))
+	}
+	counts := make([]DailyCounts, len(keys))
+	err = datastore.GetMulti(c, keys, counts)
+	if merr, ok := err.(appengine.MultiError); ok {
+		for i, e := range merr {
+			if e == datastore.ErrNoSuchEntity {
+				counts[i].Counts = map[string]int64{}
+			}
+		}
+		err = nil
+	}
+	if err != nil {
+		log.Errorf(c, "error fetching DailyCounts: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	for i, e := range counts {
+		i := incrs[keys[i].StringID()]
+		for k, v := range i {
+			e.Counts[k] += v
+		}
+	}
+	if err := datastore.RunInTransaction(c, func(tc context.Context) error {
+		grp, gc := errgroup.WithContext(tc)
+
+		log.Infof(gc, "Updating %v FoundControllers and %v DailyCounts",
+			len(fckeys), len(keys))
+		grp.Go(func() error {
+			_, err := datastore.PutMulti(c, fckeys, fcs)
+			return err
+		})
+		grp.Go(func() error {
+			_, err := datastore.PutMulti(c, keys, counts)
+			return err
+		})
+		return grp.Wait()
+	}, &datastore.TransactionOptions{XG: true}); err != nil {
+		log.Errorf(c, "error storing counts: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	w.WriteHeader(204)
 }
 
 func handleProcessUsage(w http.ResponseWriter, r *http.Request) {

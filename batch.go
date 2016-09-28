@@ -80,6 +80,12 @@ func handleSubmitMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Header.Get("X-Appengine-Cron") == "true" {
+		log.Infof(c, "Submitted on behalf of cron.")
+		w.WriteHeader(204)
+		return
+	}
+
 	http.Redirect(w, r, "/admin/batchForm?msg=Started", http.StatusFound)
 }
 

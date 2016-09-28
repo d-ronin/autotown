@@ -209,6 +209,8 @@ func batchMap(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(201)
 }
 
+var destructionWhitelist = map[string]bool{"DailyCounts": true, "FoundController": true}
+
 func batchDestroy(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
@@ -225,6 +227,11 @@ func batchDestroy(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Errorf(c, "Error decoding key: %v: %v", k, err)
 			http.Error(w, err.Error(), 500)
+			return
+		}
+		if !destructionWhitelist[key.Kind()] {
+			log.Errorf(c, "Refusing to destroy non-whitelisted %v", key.Kind())
+			http.Error(w, "Not whitelisted: "+key.Kind(), 400)
 			return
 		}
 		keys = append(keys, key)

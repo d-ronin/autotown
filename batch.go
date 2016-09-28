@@ -461,7 +461,7 @@ func handleCountUsage(w http.ResponseWriter, r *http.Request) {
 			return datastore.RunInTransaction(c, func(tc context.Context) error {
 				_, err := datastore.PutMulti(tc, fckup, fcup)
 				return err
-			}, nil)
+			}, &datastore.TransactionOptions{XG: true})
 		})
 	}
 

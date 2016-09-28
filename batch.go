@@ -375,10 +375,14 @@ func handleCountUsage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	incrs := map[string]map[string]int64{}
-	for _, fc := range fcs {
+	var fckup []*datastore.Key
+	var fcup []*FoundController
+	for i, fc := range fcs {
 		if fc.Counted {
 			continue
 		}
+		fckup = append(fckup, fckeys[i])
+		fcup = append(fcup, fc)
 		fc.Counted = true
 		ds := fc.Oldest.Format(dayFmt)
 		if _, ok := incrs[ds]; !ok {
@@ -392,6 +396,12 @@ func handleCountUsage(w http.ResponseWriter, r *http.Request) {
 	for k := range incrs {
 		keys = append(keys, datastore.NewKey(c, "DailyCounts", k, 0, nil))
 	}
+	if len(keys) == 0 {
+		log.Debugf(c, "Nothing to do")
+		w.WriteHeader(204)
+		return
+	}
+
 	counts := make([]DailyCounts, len(keys))
 	err = datastore.GetMulti(c, keys, counts)
 	if merr, ok := err.(appengine.MultiError); ok {
@@ -413,19 +423,30 @@ func handleCountUsage(w http.ResponseWriter, r *http.Request) {
 			e.Counts[k] += v
 		}
 	}
-	if err := datastore.RunInTransaction(c, func(tc context.Context) error {
-		grp, gc := errgroup.WithContext(tc)
+	if len(fckup)+len(keys) == 0 {
+		log.Debugf(c, "Nothing to do")
+		w.WriteHeader(204)
+		return
+	}
 
-		log.Infof(gc, "Updating %v FoundControllers and %v DailyCounts",
-			len(fckeys), len(keys))
-		grp.Go(func() error {
-			_, err := datastore.PutMulti(c, fckeys, fcs)
-			return err
-		})
-		grp.Go(func() error {
-			_, err := datastore.PutMulti(c, keys, counts)
-			return err
-		})
+	log.Infof(c, "Updating %v FoundControllers and %v DailyCounts",
+		len(fckup), len(keys))
+
+	if err := datastore.RunInTransaction(c, func(tc context.Context) error {
+		grp, _ := errgroup.WithContext(tc)
+
+		if len(fckup) > 0 {
+			grp.Go(func() error {
+				_, err := datastore.PutMulti(c, fckup, fcup)
+				return err
+			})
+		}
+		if len(keys) > 0 {
+			grp.Go(func() error {
+				_, err := datastore.PutMulti(c, keys, counts)
+				return err
+			})
+		}
 		return grp.Wait()
 	}, &datastore.TransactionOptions{XG: true}); err != nil {
 		log.Errorf(c, "error storing counts: %v", err)

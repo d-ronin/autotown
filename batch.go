@@ -435,6 +435,8 @@ func handleCountUsage(w http.ResponseWriter, r *http.Request) {
 	if err := datastore.RunInTransaction(c, func(tc context.Context) error {
 		grp, _ := errgroup.WithContext(tc)
 
+		// Note that these are not actually run transactionally because
+		// XG isn't working for some reason.
 		if len(fckup) > 0 {
 			grp.Go(func() error {
 				_, err := datastore.PutMulti(c, fckup, fcup)

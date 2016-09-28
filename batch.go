@@ -456,6 +456,8 @@ func handleCountUsage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	grp, cc := errgroup.WithContext(c)
+	usageSem := make(chan bool, 3)
+
 	for len(fckeys) > 0 {
 		n := 10
 		if n > len(fckeys) {
@@ -463,6 +465,10 @@ func handleCountUsage(w http.ResponseWriter, r *http.Request) {
 		}
 		todo := fckeys[:n]
 		grp.Go(func() error {
+			// Rate limit this to avoid excessive transaction contention
+			usageSem <- true
+			defer func() { <-usageSem }()
+
 			return datastore.RunInTransaction(cc, func(tc context.Context) error {
 				return countSomeUsage(tc, todo)
 			}, &datastore.TransactionOptions{XG: true, Attempts: 10})

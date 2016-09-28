@@ -38,6 +38,7 @@ func init() {
 	http.HandleFunc("/batch/indexTunes", handleIndexTunes)
 	http.HandleFunc("/batch/indexUsage", handleIndexUsage)
 	http.HandleFunc("/batch/countUsage", handleCountUsage)
+	http.HandleFunc("/batch/clearCountFlag", handleClearCountFlag)
 
 	http.HandleFunc("/batch/processUsage", handleProcessUsage)
 
@@ -466,6 +467,50 @@ func handleCountUsage(w http.ResponseWriter, r *http.Request) {
 		grp.Go(func() error {
 			return datastore.RunInTransaction(cc, func(tc context.Context) error {
 				return countSomeUsage(tc, todo)
+			}, &datastore.TransactionOptions{XG: true, Attempts: 10})
+		})
+		fckeys = fckeys[n:]
+	}
+
+	if err := grp.Wait(); err != nil {
+		log.Errorf(c, "Error counting usage: %v", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	w.WriteHeader(204)
+}
+
+func handleClearCountFlag(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	fckeys, err := decodeKeys(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	grp, cc := errgroup.WithContext(c)
+	for len(fckeys) > 0 {
+		n := 10
+		if n > len(fckeys) {
+			n = len(fckeys)
+		}
+		todo := fckeys[:n]
+		grp.Go(func() error {
+			return datastore.RunInTransaction(cc, func(tc context.Context) error {
+
+				fcs := make([]*FoundController, len(todo))
+				if err := datastore.GetMulti(c, todo, fcs); err != nil {
+					return err
+				}
+				for _, fc := range fcs {
+					fc.Counted = false
+				}
+				if _, err := datastore.PutMulti(c, todo, fcs); err != nil {
+					return err
+				}
+				return nil
 			}, &datastore.TransactionOptions{XG: true, Attempts: 10})
 		})
 		fckeys = fckeys[n:]

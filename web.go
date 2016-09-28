@@ -70,6 +70,7 @@ func init() {
 	http.Handle("/api/recentTunes", corsHandleFunc(handleRecentTunes))
 	http.Handle("/api/relatedTunes", corsHandleFunc(handleRelatedTunes))
 	http.Handle("/api/recentUsage", corsHandleFunc(handleRecentUsage))
+	http.Handle("/api/boardCounts", corsHandleFunc(handleBoardCounts))
 	http.Handle("/api/gitLabels", corsHandleFunc(handleGitLabels))
 	http.Handle("/api/tune", corsHandleFunc(handleTune))
 	http.Handle("/api/recentCrashes", corsHandleFunc(handleRecentCrashes))
@@ -1358,6 +1359,56 @@ func handleUsageStatsDetails(w http.ResponseWriter, r *http.Request) {
 		))
 	}
 
+}
+
+var oldestBoard = time.Date(2016, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+func genDates(from, to time.Time) []time.Time {
+	rv := make([]time.Time, 0, to.Sub(from)/(time.Hour*24))
+	latest := from
+	for latest.Before(to) {
+		rv = append(rv, latest)
+		latest = latest.AddDate(0, 0, 1)
+	}
+	return rv
+}
+
+func handleBoardCounts(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	var keys []*datastore.Key
+	for _, d := range genDates(oldestBoard, time.Now().AddDate(0, 0, -1)) {
+		keys = append(keys, datastore.NewKey(c, "DailyCounts", d.Format(dayFmt), 0, nil))
+	}
+
+	var rv []DailyCounts
+	vals := make([]DailyCounts, len(keys))
+	err := datastore.GetMulti(c, keys, vals)
+	log.Debugf(c, "Error: %v", err)
+	if merr, ok := err.(appengine.MultiError); ok {
+		for i, e := range merr {
+			switch e {
+			case datastore.ErrNoSuchEntity:
+				// skip
+			case nil:
+				vals[i].Day = keys[i].StringID()
+				rv = append(rv, vals[i])
+			default:
+				break
+			}
+		}
+		err = nil
+	} else {
+		rv = vals
+	}
+
+	if err != nil {
+		log.Errorf(c, "Error loading: %v - keys: %v", err, keys)
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	mustEncode(c, w, r, rv)
 }
 
 func handleSearchTunes(c context.Context, index *search.Index, w http.ResponseWriter, r *http.Request) {

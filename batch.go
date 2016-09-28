@@ -438,25 +438,27 @@ func handleCountUsage(w http.ResponseWriter, r *http.Request) {
 	log.Infof(c, "Updating %v FoundControllers and %v DailyCounts",
 		len(fckup), len(keys))
 
-	if err := datastore.RunInTransaction(c, func(tc context.Context) error {
-		grp, _ := errgroup.WithContext(tc)
+	// XXX: I'd like these two to happen in a single transaction, but XG
+	// doesn't do it for some reason I've not been able to figure out.
 
-		// Note that these are not actually run transactionally because
-		// XG isn't working for some reason.
-		if len(fckup) > 0 {
-			grp.Go(func() error {
-				_, err := datastore.PutMulti(c, fckup, fcup)
+	grp, _ := errgroup.WithContext(c)
+	if len(keys) > 0 {
+		grp.Go(func() error {
+			_, err := datastore.PutMulti(c, keys, counts)
+			return err
+		})
+	}
+
+	if len(fckup) > 0 {
+		grp.Go(func() error {
+			return datastore.RunInTransaction(c, func(tc context.Context) error {
+				_, err := datastore.PutMulti(tc, fckup, fcup)
 				return err
-			})
-		}
-		if len(keys) > 0 {
-			grp.Go(func() error {
-				_, err := datastore.PutMulti(c, keys, counts)
-				return err
-			})
-		}
-		return grp.Wait()
-	}, &datastore.TransactionOptions{XG: true}); err != nil {
+			}, nil)
+		})
+	}
+
+	if err := grp.Wait(); err != nil {
 		log.Errorf(c, "error storing counts: %v", err)
 		http.Error(w, err.Error(), 500)
 		return

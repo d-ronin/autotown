@@ -77,8 +77,10 @@ func handleRewriteUUIDs(w http.ResponseWriter, r *http.Request) {
 
 	if len(keys) > 0 {
 		log.Infof(c, "Updating %v items", len(keys))
-		_, err := datastore.PutMulti(c, keys, toUpdate)
-		if err != nil {
+		if err := datastore.RunInTransaction(c, func(tc context.Context) error {
+			_, err := datastore.PutMulti(tc, keys, toUpdate)
+			return err
+		}, nil); err != nil {
 			log.Errorf(c, "Error udpating tune records: %v", err)
 			http.Error(w, err.Error(), 500)
 			return
@@ -322,9 +324,11 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 	if len(keys) > 0 {
 		g.Go(func() error {
 			log.Infof(c, "Updating %v items", len(keys))
-			_, err := datastore.PutMulti(c, keys, toUpdate)
-			memcache.Delete(c, resultsStatsKey)
-			return err
+			return datastore.RunInTransaction(c, func(tc context.Context) error {
+				_, err := datastore.PutMulti(tc, keys, toUpdate)
+				memcache.Delete(c, resultsStatsKey)
+				return err
+			}, nil)
 		})
 	}
 

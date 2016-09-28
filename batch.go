@@ -372,19 +372,10 @@ func handleIndexUsage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleCountUsage(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
-
-	fckeys, err := decodeKeys(r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
+func countSomeUsage(c context.Context, fckeys []*datastore.Key) error {
 	fcs := make([]*FoundController, len(fckeys))
 	if err := datastore.GetMulti(c, fckeys, fcs); err != nil {
-		log.Errorf(c, "Error fetching FoundControllers: %v", err)
-		http.Error(w, err.Error(), 500)
-		return
+		return err
 	}
 
 	incrs := map[string]map[string]int64{}
@@ -411,12 +402,11 @@ func handleCountUsage(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(keys) == 0 {
 		log.Debugf(c, "Nothing to do")
-		w.WriteHeader(204)
-		return
+		return nil
 	}
 
 	counts := make([]DailyCounts, len(keys))
-	err = datastore.GetMulti(c, keys, counts)
+	err := datastore.GetMulti(c, keys, counts)
 	if merr, ok := err.(appengine.MultiError); ok {
 		for i, e := range merr {
 			if e == datastore.ErrNoSuchEntity {
@@ -426,9 +416,7 @@ func handleCountUsage(w http.ResponseWriter, r *http.Request) {
 		err = nil
 	}
 	if err != nil {
-		log.Errorf(c, "error fetching DailyCounts: %v", err)
-		http.Error(w, err.Error(), 500)
-		return
+		return err
 	}
 	for i, e := range counts {
 		i := incrs[keys[i].StringID()]
@@ -438,35 +426,53 @@ func handleCountUsage(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(fckup)+len(keys) == 0 {
 		log.Debugf(c, "Nothing to do")
-		w.WriteHeader(204)
-		return
+		return nil
 	}
 
 	log.Infof(c, "Updating %v FoundControllers and %v DailyCounts",
 		len(fckup), len(keys))
 
-	// XXX: I'd like these two to happen in a single transaction, but XG
-	// doesn't do it for some reason I've not been able to figure out.
-
-	grp, _ := errgroup.WithContext(c)
 	if len(keys) > 0 {
-		grp.Go(func() error {
-			_, err := datastore.PutMulti(c, keys, counts)
+		if _, err := datastore.PutMulti(c, keys, counts); err != nil {
 			return err
-		})
+		}
 	}
 
 	if len(fckup) > 0 {
+		if _, err := datastore.PutMulti(c, fckup, fcup); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func handleCountUsage(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	fckeys, err := decodeKeys(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	grp, cc := errgroup.WithContext(c)
+	for len(fckeys) > 0 {
+		n := 10
+		if n > len(fckeys) {
+			n = len(fckeys)
+		}
+		todo := fckeys[:n]
 		grp.Go(func() error {
-			return datastore.RunInTransaction(c, func(tc context.Context) error {
-				_, err := datastore.PutMulti(tc, fckup, fcup)
-				return err
-			}, &datastore.TransactionOptions{XG: true})
+			return datastore.RunInTransaction(cc, func(tc context.Context) error {
+				return countSomeUsage(tc, todo)
+			}, &datastore.TransactionOptions{XG: true, Attempts: 10})
 		})
+		fckeys = fckeys[n:]
 	}
 
 	if err := grp.Wait(); err != nil {
-		log.Errorf(c, "error storing counts: %v", err)
+		log.Errorf(c, "Error counting usage: %v", err)
 		http.Error(w, err.Error(), 500)
 		return
 	}

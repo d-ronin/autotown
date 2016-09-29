@@ -402,7 +402,6 @@ function drawAdditionsRate(data, dest, colors, options, window, maxdays) {
 
         d3.map(v.counts).forEach(function(b) { if (!timeline[b]) { others[b] = (others[b] || 0) + 1 }});
     });
-    d3.select("#monthlyothers").text("Not shown: " + d3.keys(others).sort(nocase).join(", "));
 
     var tldata = [];
     options.forEach(function(proc) {
@@ -443,6 +442,8 @@ function drawAdditionsRate(data, dest, colors, options, window, maxdays) {
 
         return chart;
     });
+
+    return others;
 }
 
 function drawPlots() {
@@ -473,10 +474,12 @@ function drawPlots() {
     d3_queue.queue()
         .defer(d3_request.requestJson, "//dronin-autotown.appspot.com/api/boardCounts")
         .awaitAll(function(error, results) {
-            drawAdditionsRate(results[0], '#monthly svg', boardColors,
-                              ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
-                               "quanton", "Revo", "Sparky", "Sparky2", "Other"],
-                              30, 365*5);
+            var others = drawAdditionsRate(results[0], '#monthly svg', boardColors,
+                                           ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
+                                            "quanton", "Revo", "Sparky", "Sparky2", "Other"],
+                                           30, 365*5);
+            d3.select("#monthlyothers").text("Not shown: " + d3.keys(others).sort(nocase).join(", "));
+
             drawAdditionsRate(results[0], '#weekly svg', boardColors,
                               ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
                                "quanton", "Revo", "Sparky", "Sparky2", "Other"],

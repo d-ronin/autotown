@@ -385,27 +385,22 @@ function nocase(a, b) {
     return a.toLowerCase().localeCompare(b.toLowerCase());
 }
 
-function drawAdditionsRate(data, dest, colors, options, accessor, window, maxdays) {
+function drawAdditionsRate(data, dest, colors, options, window, maxdays) {
     var timeline = {};
     options.forEach(function(i) { timeline[i] = {}; });
     var others = {};
     var now = new Date();
     data.forEach(function(v) {
-        var t = accessor(v);
-        if (!timeline[t]) { others[t] = (others[t] || 0) + 1; t = 'Other'; }
+        var d = new Date(v.day);
 
-        var d = new Date(v.oldest.substr(0, 10));
-        d.setHours(0);
-        d.setMinutes(0);
-        d.setSeconds(0);
-
-        if (Math.round((now.getTime() - d.getTime())/(86400*1000)) < maxdays){
-            // Ensure we've got a value for every proc type.  There was one week
-            // with zero F3s, and that breaks the charting stuff. :(
-            options.forEach(function(proc) { timeline[proc][+d] |= 0; });
-
-            timeline[t][+d]++;
+        if (Math.round((now.getTime() - d.getTime())/(86400*1000)) >= maxdays) {
+            // Ignore this day
+            return;
         }
+
+        options.forEach(function(b) { timeline[b][+d] = v.counts[b] || 0; });
+
+        d3.map(v.counts).forEach(function(b) { if (!timeline[b]) { others[b] = (others[b] || 0) + 1 }});
     });
     d3.select("#monthlyothers").text("Not shown: " + d3.keys(others).sort(nocase).join(", "));
 
@@ -475,6 +470,20 @@ function drawPlots() {
             drawProcessorGraph(data);
         });
 
+    d3_queue.queue()
+        .defer(d3_request.requestJson, "//dronin-autotown.appspot.com/api/boardCounts")
+        .awaitAll(function(error, results) {
+            drawAdditionsRate(results[0], '#monthly svg', boardColors,
+                              ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
+                               "quanton", "Revo", "Sparky", "Sparky2", "Other"],
+                              30, 365*5);
+            drawAdditionsRate(results[0], '#weekly svg', boardColors,
+                              ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
+                               "quanton", "Revo", "Sparky", "Sparky2", "Other"],
+                              7, 60);
+
+        });
+
     // Charts that need a bit more data.
     d3_queue.queue()
         .defer(d3_request.requestJson, "/static/lib/world-110m.json")
@@ -485,20 +494,5 @@ function drawPlots() {
                 return;
             }
             drawCountryMap(results[0], results[1]);
-            drawAdditionsRate(results[1], '#monthly svg', boardColors,
-                              ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
-                               "quanton", "Revo", "Sparky", "Sparky2", "Other"],
-                              function(d) { return d.name; },
-                              30, 365*5);
-            drawAdditionsRate(results[1], '#weekly svg', boardColors,
-                              ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
-                               "quanton", "Revo", "Sparky", "Sparky2", "Other"],
-                              function(d) { return d.name; },
-                              7, 60);
-            /*
-            drawAdditionsRate(results[1], '#monthlyprocs svg', procColors,
-                              ['F1', 'F3', 'F4', 'Other'],
-                              function(d) { return processorTypes[d.name]; });
-            */
         });
 }

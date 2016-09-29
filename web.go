@@ -1375,13 +1375,22 @@ func genDates(from, to time.Time) []time.Time {
 
 func handleBoardCounts(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
+	yesterday := time.Now().AddDate(0, 0, -1)
+
+	cacheKey := "boardCounts." + yesterday.Format(dayFmt)
+	var rv []DailyCounts
+	if _, err := memcache.JSON.Get(c, cacheKey, &rv); err == nil {
+		mustEncode(c, w, r, rv)
+		return
+	} else {
+		log.Infof(c, "Cache error: %v", err)
+	}
 
 	var keys []*datastore.Key
-	for _, d := range genDates(oldestBoard, time.Now().AddDate(0, 0, -1)) {
+	for _, d := range genDates(oldestBoard, yesterday) {
 		keys = append(keys, datastore.NewKey(c, "DailyCounts", d.Format(dayFmt), 0, nil))
 	}
 
-	var rv []DailyCounts
 	vals := make([]DailyCounts, len(keys))
 	err := datastore.GetMulti(c, keys, vals)
 	log.Debugf(c, "Error: %v", err)
@@ -1406,6 +1415,14 @@ func handleBoardCounts(w http.ResponseWriter, r *http.Request) {
 		log.Errorf(c, "Error loading: %v - keys: %v", err, keys)
 		http.Error(w, err.Error(), 400)
 		return
+	}
+
+	if err := memcache.JSON.Set(c, &memcache.Item{
+		Key:        cacheKey,
+		Object:     rv,
+		Expiration: time.Hour * 24,
+	}); err != nil {
+		log.Warningf(c, "Problem storing stuff in memcache: %v", err)
 	}
 
 	mustEncode(c, w, r, rv)

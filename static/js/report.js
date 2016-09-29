@@ -413,7 +413,7 @@ function drawAdditionsRate(data, dest, colors, options, window, maxdays) {
         values.sort(function (a, b) {return d3.ascending(a.x, b.x); });
         // Reduce value set to sum of N day windows.
         var vw = [];
-        for (var i = window; i<values.length-1; i++) {
+        for (var i = window; i<values.length; i++) {
             vw.push({x: values[i].x, y: d3.sum(values.slice(i-window, i), function(d) { return d.y; })});
         }
         tldata.push({key: proc, values: vw});

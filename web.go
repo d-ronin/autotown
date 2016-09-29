@@ -1319,6 +1319,12 @@ func handleUsageStatsDetails(w http.ResponseWriter, r *http.Request) {
 		log.Warningf(c, "Couldn't resolve git labels: %v", err)
 	}
 
+	age := 365
+	if i, err := strconv.Atoi(r.FormValue("a")); err == nil {
+		age = i
+	}
+	oldest := time.Now().AddDate(0, 0, -age)
+
 	w.Header().Set("Content-Type", "text/plain")
 
 	header := []string{"timestamp", "oldest", "count",
@@ -1334,7 +1340,9 @@ func handleUsageStatsDetails(w http.ResponseWriter, r *http.Request) {
 	defer cw.Flush()
 	cw.Write(header)
 
-	q := datastore.NewQuery("FoundController").Order("-timestamp")
+	q := datastore.NewQuery("FoundController").
+		Order("-timestamp").
+		Filter("timestamp > ", oldest)
 
 	for t := q.Run(c); ; {
 		var x FoundController

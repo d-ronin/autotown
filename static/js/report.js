@@ -487,7 +487,7 @@ function drawPlots() {
     // Charts that need a bit more data.
     d3_queue.queue()
         .defer(d3_request.requestJson, "/static/lib/world-110m.json")
-        .defer(d3_request.requestCsv, "//dronin-autotown.appspot.com/api/usageDetails")
+        .defer(d3_request.requestCsv, "//dronin-autotown.appspot.com/api/usageDetails?a=90")
         .awaitAll(function(error, results) {
             if (error) {
                 console.log(error);

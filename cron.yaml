@@ -5,5 +5,5 @@ cron:
   timezone: US/Pacific
 - description: roll up the UUIDs
   url: /admin/submitMap?kind=FoundController&next=/batch/countUsage
-  schedule: every 24 hours
+  schedule: every day 00:01
   timezone: US/Pacific

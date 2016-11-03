@@ -315,6 +315,7 @@ func asyncRollup(c context.Context, d *asyncUsageData) error {
 		}
 
 		v.Oldest = olderTime(olderTime(prev.Oldest, v.Oldest), prev.Timestamp)
+		v.Counted = v.Counted || prev.Counted
 
 		keys = append(keys, key)
 		toUpdate = append(toUpdate, v)

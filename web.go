@@ -48,7 +48,7 @@ var (
 		AllowedOrigins: []string{"http://localhost:8080",
 			"http://dronin.org", "https://dronin.org",
 			"http://bl.ocks.org", "http://crash.dronin.tracer.nz",
-			"http://dronin.tracer.nz"},
+			"http://dronin.tracer.nz", "http://*.dronin-autotown.appspot.com"},
 		AllowedMethods: []string{"GET"},
 	})
 )

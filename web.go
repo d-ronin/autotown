@@ -47,7 +47,7 @@ var (
 	corsHandler = cors.New(cors.Options{
 		AllowedOrigins: []string{"http://localhost:8080",
 			"http://dronin.org", "https://dronin.org",
-			"http://bl.ocks.org", "http://crash.dronin.tracer.nz",
+			"http://bl.ocks.org", "https://crash.dronin.tracer.nz",
 			"http://dronin.tracer.nz", "http://*.dronin-autotown.appspot.com"},
 		AllowedMethods: []string{"GET"},
 	})
@@ -457,7 +457,7 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(204)
 
 	// Header's done, just have to try to advise workers.
-	notifyURL := "http://crash.dronin.tracer.nz/newCrash"
+	notifyURL := "https://crash.dronin.tracer.nz/newCrash"
 	j, err := json.Marshal(crash)
 	if err != nil {
 		log.Errorf(c, "Error serializing crash to JSON: %v", err)

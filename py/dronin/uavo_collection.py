@@ -7,7 +7,7 @@ Copyright (C) 2015 dRonin, http://dronin.org
 Licensed under the GNU LGPL version 2.1 or any later version (see COPYING.LESSER)
 """
 
-import uavo
+from . import uavo
 
 import operator
 import os.path as op
@@ -22,14 +22,14 @@ class UAVOCollection(dict):
         if uavo_name[0:5]!='UAVO_':
             uavo_name = 'UAVO_' + uavo_name
 
-        for u in self.itervalues():
+        for u in self.values():
             if u._name == uavo_name:
                 return u
 
         return None
 
     def get_settings_objects(self):
-        objs = [ u for u in self.itervalues() if u._is_settings ]
+        objs = [ u for u in self.values() if u._is_settings ]
         objs.sort(key=operator.attrgetter('_name'))
 
         return objs
@@ -68,6 +68,9 @@ class UAVOCollection(dict):
             if f_info.name.count("oplinksettings") > 0:
                 continue
 
+            if not f_info.name.endswith('.xml'):
+                continue
+
             f = t.extractfile(f_info)
             content_list.append(f.read())
             f.close()
@@ -75,45 +78,59 @@ class UAVOCollection(dict):
         self.from_file_contents(content_list)
 
     def from_tar_bytes(self, contents):
-        from cStringIO import StringIO
+        from io import BytesIO
         import tarfile
 
         # coerce the tar file data into a file object so that tarfile likes it
-        fobj = StringIO(contents)
+        fobj = BytesIO(contents)
 
         # feed the tar file data to a tarfile object
         with tarfile.open(fileobj=fobj) as t:
             self.from_tar_file(t)
 
-    def from_git_hash(self, githash):
-        import subprocess
-        # Get the directory where the code is located
-        src_dir = op.join(op.dirname(__file__), "..", "..")
-        #
-        # Grab the exact uavo definition files from the git repo using the header's git hash
-        #
-        try:
-            p = subprocess.Popen(['git', 'archive', githash, '--', 'shared/uavobjectdefinition/'],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                 cwd=src_dir)
-            # grab the tar file data
-            git_archive_data, git_archive_errors = p.communicate()
+    def from_git_hash(self, githashes):
+        if not isinstance(githashes, list):
+            githashes = [ githashes ]
 
-            if p.returncode == 0:
-                self.from_tar_bytes(git_archive_data)
+        for h in githashes:
+            try:
+                #
+                # Grab the exact uavo definition files from the git repo using
+                # the provided hash
+                #
+                import subprocess
+
+                # Get the directory where the code is located
+                src_dir = op.join(op.dirname(__file__), "..", "..")
+
+                p = subprocess.Popen(['git', 'archive', h, '--', 'shared/uavobjectdefinition/'],
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                     cwd=src_dir)
+                # grab the tar file data
+                git_archive_data, git_archive_errors = p.communicate()
+
+                if p.returncode == 0:
+                    self.from_tar_bytes(git_archive_data)
+                    return
+            except Exception:
+                # Popen isn't available on GAE, so all of the above fails.
+                pass
+
+            try:
+                from six.moves.urllib.request import urlopen
+
+                # TODO -- this can be bundled into a single request and unrolled.
+                web_data = urlopen("http://dronin-autotown.appspot.com/uavos/%s" % (h))
+
+                if web_data.getcode() != 200:
+                    continue
+
+                self.from_tar_bytes(web_data.read())
                 return
-        except:
-            # Popen isn't available on GAE, so all of the above fails.
-            pass
+            except Exception:
+                pass
 
-        #print "Error exit status, falling back to cloud"
-
-        import urllib2
-
-        web_data = urllib2.urlopen("http://dronin-autotown.appspot.com/uavos/%s?altGitHash=%s" % (
-            githash, GITHASH_OF_LAST_RESORT)).read()
-
-        self.from_tar_bytes(web_data)
+        raise Exception("Couldn't get any UAVO definitions by githash")
 
     def from_uavo_xml_path(self, path):
         import os

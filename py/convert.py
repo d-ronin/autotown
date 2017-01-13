@@ -11,7 +11,9 @@ class UpgraderApp(webapp2.RequestHandler):
 <form enctype="multipart/form-data" method="post">
 <p>
 Source githash:<br>
-<input type="text" name="githash" size="30">
+<input type="text" name="githash" size="30"><br>
+Ancestor githash:<br>
+<input type="text" name="ancestor" size="30">
 </p>
 <p>
 Please specify a file, or a set of files:<br>
@@ -32,8 +34,17 @@ Please specify a file, or a set of files:<br>
             logging.exception('Decompression error on user input')
             datafile = self.request.get('datafile')
 
-        logging.info("Incoming git hash: %s", self.request.get('githash'))
-        imported = LogFSImport(self.request.get('githash'), datafile)
+        try:
+            logging.info("Trying git hash: %s", self.request.get('githash'))
+            imported = LogFSImport(self.request.get('githash'), datafile)
+        except Exception:
+            logging.info("Falling back to ancestor: %s", self.request.get('ancestor'))
+            imported = LogFSImport(self.request.get('ancestor'), datafile)
+
+        try:
+            logging.info("Adapt-to information: %s", self.request.get('adaptTo'))
+        except Exception:
+            logging.info("Failed to get adapt-to field")
 
         # Super naive hack implementation of d-ronin/dRonin#1019; if a
         # mixer channel is unused, force the PWM range during upgrade to
@@ -79,6 +90,7 @@ app = webapp2.WSGIApplication([
 
 #def main():
 #    from paste import httpserver
+#    logging.getLogger().setLevel(logging.INFO)
 #    httpserver.serve(app, host='127.0.0.1', port=8080)
 #
 #if __name__ == '__main__':

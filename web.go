@@ -399,6 +399,11 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad input: "+err.Error(), 400)
 		return
 	}
+	if len(data) == 0 {
+		log.Warningf(c, "Empty crash data provided.")
+		http.Error(w, "Empty crash data", 400)
+		return
+	}
 	sum := sha1.Sum(data)
 	filename := hex.EncodeToString(sum[:])
 	filename = "crash/" + filename[:2] + "/" + filename[2:]

@@ -244,6 +244,7 @@ var processorTypes = {
     "Revo":'F4',
     "RevoMini":'F4',
     "Revolution":'F4',
+    "Seppuku":'F4',
     "Sparky":'F3',
     "Sparky2":'F4',
     "colibri":'F4',
@@ -476,13 +477,13 @@ function drawPlots() {
         .awaitAll(function(error, results) {
             var others = drawAdditionsRate(results[0], '#monthly svg', boardColors,
                                            ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
-                                            "quanton", "Revo", "Sparky", "Sparky2", "Other"],
+                                            "quanton", "Revo", "Seppuku", "Sparky", "Sparky2", "Other"],
                                            30, 365*5);
             d3.select("#monthlyothers").text("Not shown: " + d3.keys(others).sort(nocase).join(", "));
 
             drawAdditionsRate(results[0], '#weekly svg', boardColors,
                               ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
-                               "quanton", "Revo", "Sparky", "Sparky2", "Other"],
+                               "quanton", "Revo", "Seppuku", "Sparky", "Sparky2", "Other"],
                               7, 60);
 
         });

@@ -476,13 +476,13 @@ function drawPlots() {
         .defer(d3_request.requestJson, "//dronin-autotown.appspot.com/api/boardCounts")
         .awaitAll(function(error, results) {
             var others = drawAdditionsRate(results[0], '#monthly svg', boardColors,
-                                           ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
+                                           ["Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
                                             "quanton", "Revo", "Seppuku", "Sparky", "Sparky2", "Other"],
                                            30, 365*5);
             d3.select("#monthlyothers").text("Not shown: " + d3.keys(others).sort(nocase).join(", "));
 
             drawAdditionsRate(results[0], '#weekly svg', boardColors,
-                              ["AQ32", "Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
+                              ["Brain", "BrainRE1", "CC3D", "DTFc", "Lux", "Naze",
                                "quanton", "Revo", "Seppuku", "Sparky", "Sparky2", "Other"],
                               7, 60);
 

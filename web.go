@@ -462,7 +462,7 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(204)
 
 	// Header's done, just have to try to advise workers.
-	notifyURL := "https://crash.dronin.tracer.nz/newCrash"
+	notifyURL := "https://crash.dronin.tracer.nz/api/crash/process"
 	j, err := json.Marshal(crash)
 	if err != nil {
 		log.Errorf(c, "Error serializing crash to JSON: %v", err)

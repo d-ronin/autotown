@@ -55,6 +55,25 @@
   </div>
 </div>
 
+<h2 ng-show="trace.modules">Loaded Modules</h2>
+
+<table ng-show="trace.modules" class="display" datatable="ng">
+  <thead>
+    <tr>
+      <td>Image</td>
+      <td>Debug File</td>
+      <td>Debug ID</td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="m in trace.modules">
+      <td>{{m.file}}</td>
+      <td>{{m.debugfile}}</td>
+      <td><a ng-href="https://crash.dronin.tracer.nz/api/symbols/breakpad/{{m.debugfile}}/{{m.debugid}}">{{m.debugid}}</a></td>
+    </tr>
+  </tbody>
+</table>
+
 <h2 ng-show="crash.file">Full Dump</h2>
 
 <p ng-show="crash.file">

@@ -257,7 +257,8 @@ function crashCtrl($scope, $http, $routeParams) {
         ).then(function successCallback(response) {
           $scope.sourcecode[relpath] = response.data;
         }, function errorCallback(response) {
-          $scope.sourcecode[relpath] = 'Failed to fetch data: ' + response.status + ' ' + response.statusText;
+          if (response.status != 404)
+            $scope.sourcecode[relpath] = 'Failed to fetch data: ' + response.status + ' ' + response.statusText;
         });
       });
     });

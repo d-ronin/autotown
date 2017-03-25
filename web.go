@@ -426,7 +426,8 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 
 	bucket := client.Bucket(bucketName)
 
-	wc := bucket.Object(filename).NewWriter(c)
+	obj := bucket.Object(filename)
+	wc := obj.NewWriter(c)
 	wc.ContentType = "application/octet-stream"
 
 	if _, err := wc.Write(data); err != nil {
@@ -458,6 +459,16 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	crash.Key = k
+
+	// Attach a nice filename to the object so it can be opened with MSVS
+	_, err = obj.Update(c, storage.ObjectAttrs{
+		ContentDisposition: "attachment; filename=\"" + k.String() + ".dmp\"",
+	})
+	if err != nil {
+		log.Warningf(c, "Error setting attributes on blob:  %v\n%#v", err, crash)
+		http.Error(w, "error setting attributes on blob", 500)
+		return
+	}
 
 	w.WriteHeader(204)
 

@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/storage"
+
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 
@@ -36,7 +38,6 @@ import (
 	"google.golang.org/appengine/search"
 	"google.golang.org/appengine/taskqueue"
 	"google.golang.org/appengine/urlfetch"
-	"google.golang.org/cloud/storage"
 )
 
 const statsURL = "http://dronin-autotown.appspot.com/static/stats.html"

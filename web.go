@@ -462,7 +462,7 @@ func handleStoreCrash(w http.ResponseWriter, r *http.Request) {
 	crash.Key = k
 
 	// Attach a nice filename to the object so it can be opened with MSVS
-	_, err = obj.Update(c, storage.ObjectAttrs{
+	_, err = obj.Update(c, storage.ObjectAttrsToUpdate{
 		ContentDisposition: "attachment; filename=\"" + k.String() + ".dmp\"",
 	})
 	if err != nil {

@@ -347,6 +347,8 @@ func abbrevOS(s string) string {
 		return "Windows"
 	case strings.HasPrefix(s, "OS X"):
 		return "Mac"
+	case strings.HasPrefix(s, "macOS"):
+		return "Mac"
 	default:
 		return "Linux"
 	}

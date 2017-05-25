@@ -401,7 +401,12 @@ function drawAdditionsRate(data, dest, colors, options, window, maxdays) {
 
         options.forEach(function(b) { timeline[b][+d] = v.counts[b] || 0; });
 
-        d3.map(v.counts).forEach(function(b) { if (!timeline[b]) { others[b] = (others[b] || 0) + 1 }});
+        d3.map(v.counts).forEach(function(b) {
+            if (!timeline[b]) {
+                others[b] = (others[b] || 0) + 1;
+                timeline['Other'][+d] += v.counts[b];
+            }
+        });
     });
 
     var tldata = [];

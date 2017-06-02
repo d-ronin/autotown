@@ -248,17 +248,63 @@ function crashCtrl($scope, $http, $routeParams) {
       }, threads);
       $scope.trace.threads = threads;
 
-      // fetch gcs source code async
-      angular.forEach(response.data.sources, function(relpath) {
-        var fetchurl = 'https://api.github.com/repos/d-ronin/dRonin/contents/' + relpath + '?ref=' + response.data.gitrevision;
+      function fetchSource(org, repo, path, ref, key) {
+        if (key == null)
+          key = path
+        var fetchurl = 'https://api.github.com/repos/' + org + '/' + repo + '/contents/' + path + '?ref=' + ref;
+        var linkurl = 'https://github.com/' + org + '/' + repo + '/blob/' + ref + '/' + path;
+
         $http.get(
           fetchurl,
           {headers: {'Accept': 'application/vnd.github.VERSION.raw'}}
         ).then(function successCallback(response) {
-          $scope.sourcecode[relpath] = response.data;
+          $scope.sourcecode[key] = {link: linkurl, code: response.data};
         }, function errorCallback(response) {
           if (response.status != 404)
-            $scope.sourcecode[relpath] = 'Failed to fetch data: ' + response.status + ' ' + response.statusText;
+            $scope.sourcecode[key] = {code: 'Failed to fetch data: ' + response.status + ' ' + response.statusText};
+        });
+      }
+
+      var codeSources = [
+        // last subgroup is the source path relative to repo,
+        // optional first group is the repo name (if the property is null)
+        {
+          org: 'd-ronin',
+          repo: 'dRonin',
+          filePattern: /(ground\/gcs\/src\/.+)$/,
+          ref: response.data.gitrevision
+        }
+      ];
+
+      if ('qtRuntimeVersion' in $scope.crash) {
+        // this pattern matches Qt 5.9.0 windows releases
+        // we only get source paths on release builds on windows
+        // so this should be okay for now, but we're a little dependant
+        // on their build environment
+        codeSources.push({
+          org: 'qt',
+          repo: null,
+          filePattern: /\\qt\\(qt[a-z0-9]+)\\(src\\.+)$/,
+          ref: 'v' + $scope.crash.qtRuntimeVersion
+        });
+      }
+
+      angular.forEach($scope.trace.threads, function(thread) {
+        angular.forEach(thread.frames, function(frame) {
+          angular.forEach(codeSources, function(source) {
+            var match = frame.sourcefile.match(source.filePattern)
+            if (!match)
+              return;
+            if (source.repo == null) {
+              var repo = match[1];
+              var relpath = match[2];
+            } else {
+              var repo = source.repo;
+              var relpath = match[1];
+            }
+
+            fetchSource(source.org, repo, relpath, source.ref, frame.sourcefile)
+          });
         });
       });
     });

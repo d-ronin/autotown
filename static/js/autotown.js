@@ -271,7 +271,7 @@ function crashCtrl($scope, $http, $routeParams) {
         {
           org: 'd-ronin',
           repo: 'dRonin',
-          filePattern: /(ground\/gcs\/src\/.+)$/,
+          filePattern: /(ground[\/\\]gcs[\/\\]src[\/\\].+)$/,
           ref: response.data.gitrevision
         }
       ];
